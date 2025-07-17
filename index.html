@@ -222,6 +222,11 @@
             <select id="agent_name">
                 <option value="HamedvonInvestMenter">HamedvonInvestMenter</option><option value="BrigitteMenter">BrigitteMenter</option><option value="SusanneStein">SusanneStein</option><option value="LianaMeller">LianaMeller</option><option value="JenniferSteinbeisser">JenniferSteinbeisser</option><option value="FelixHeindoerfer">FelixHeindoerfer</option><option value="MatvfyPlyatskovsky">MatvfyPlyatskovsky</option><option value="Oliverzenz">Oliverzenz</option><option value="BenjaminMorichi">BenjaminMorichi</option><option value="LisaHeimsch">LisaHeimsch</option><option value="AlexandrosKyritsis">AlexandrosKyritsis</option><option value="MichaelLochbrunner">MichaelLochbrunner</option><option value="AnnaHerbst">AnnaHerbst</option><option value="KianoLoehr">KianoLoehr</option><option value="SavvasKyritsis">SavvasKyritsis</option><option value="MichaelMenter">MichaelMenter</option><option value="JimMenter">JimMenter</option><option value="ChristianBruder">ChristianBruder</option><option value="HelmutSokopp">HelmutSokopp</option><option value="MaedhiNasef">MaedhiNasef</option><option value="JoanaReyes">JoanaReyes</option><option value="NicolasKrause">NicolasKrause</option><option value="ThorstenvonRiet">ThorstenvonRiet</option><option value="AniaSchuck">AniaSchuck</option><option value="DarinaKandhorov">DarinaKandhorov</option><option value="MarkusJörie">MarkusJörie</option><option value="JosephRuhhammer">JosephRuhhammer</option><option value="MarcoJaeger">MarcoJaeger</option><option value="AaronKarvani">AaronKarvani</option>
             </select>
+            <div class="add-option-container">
+                <input type="text" class="add-option-input" id="new-agent" placeholder="Enter new agent name">
+                <button class="add-option-btn" onclick="addNewOption('agent_name', 'new-agent')">Add</button>
+            </div>
+            <div id="agent_name-success" class="success-message" style="display: none;"></div>
         </div>
 
         <div id="paid-options-container" style="display: none;">
@@ -429,10 +434,12 @@
             // Clear add option inputs
             document.getElementById('new-leadmagnet').value = '';
             document.getElementById('new-source').value = '';
+            document.getElementById('new-agent').value = '';
             
             // Hide success messages
             document.getElementById('leadmagnet-success').style.display = 'none';
             document.getElementById('source-success').style.display = 'none';
+            document.getElementById('agent_name-success').style.display = 'none';
             
             handleMediumChange();
         }
@@ -447,6 +454,12 @@
         document.getElementById('new-source').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 addNewSource();
+            }
+        });
+
+        document.getElementById('new-agent').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addNewOption('agent_name', 'new-agent');
             }
         });
 
