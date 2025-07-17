@@ -13,6 +13,8 @@
             --primary-hover: #0056b3;
             --secondary-color: #6c757d;
             --secondary-hover: #5a6268;
+            --success-color: #28a745;
+            --success-hover: #218838;
             --light-gray: #f8f9fa;
             --border-color: #dee2e6;
             --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -83,6 +85,40 @@
             font-family: 'Poppins', sans-serif;
             font-size: 14px;
         }
+        .add-option-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+            align-items: center;
+        }
+        .add-option-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Poppins', sans-serif;
+        }
+        .add-option-btn {
+            background-color: var(--success-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+        .add-option-btn:hover {
+            background-color: var(--success-hover);
+        }
+        .add-option-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
         #paid-options-container {
             border-top: 1px solid var(--border-color);
             margin-top: 25px;
@@ -122,6 +158,12 @@
             font-weight: 600;
             height: 20px;
         }
+        .success-message {
+            color: var(--success-color);
+            font-size: 12px;
+            margin-top: 5px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -141,8 +183,13 @@
         <div class="form-group">
             <label for="leadmagnet">LEADMAGNET</label>
             <select id="leadmagnet">
-                <option value="Vermögenstag">Vermögenstag</option><option value="report24">report24</option><option value="Erstgespraech">Erstgespraech</option><option value="videoseries">videoseries</option><option value="investmentguideAG">investmentguideAG</option><option value="live-webinar">live-webinar</option><option value="investment-report2024">investment-report2024</option><option value="webseite">webseite</option><option value="webinar-report240">webinar-report240</option><option value="haltefrist24-report">haltefrist24-report</option><option value="dieterbohlen">dieterbohlen</option><option value="warteliste">warteliste</option><option value="flipreport">flipreport</option><option value="flipreport-wechsler">flipreport-wechsler</option><option value="erfolgswebinar">erfolgswebinar</option><option value="webinar-fehr">webinar-fehr</option><option value="Erstgespraech_20241104">Erstgespraech_20241104</option><option value="villen-launch">villen-launch</option><option value="webinar-wolf">webinar-wolf</option><option value="geistige-heizungsgesetz">geistige-heizungsgesetz</option><option value="vermoegensschutz-checkliste">vermoegensschutz-checkliste</option><option value="Vermögenstag">Vermögenstag</option><option value="corporate-service">corporate-service</option><option value="dubai-islands">dubai-islands</option>
+                <option value="Vermögenstag">Vermögenstag</option><option value="report24">report24</option><option value="Erstgespraech">Erstgespraech</option><option value="videoseries">videoseries</option><option value="investmentguideAG">investmentguideAG</option><option value="live-webinar">live-webinar</option><option value="investment-report2024">investment-report2024</option><option value="webseite">webseite</option><option value="webinar-report240">webinar-report240</option><option value="haltefrist24-report">haltefrist24-report</option><option value="dieterbohlen">dieterbohlen</option><option value="warteliste">warteliste</option><option value="flipreport">flipreport</option><option value="flipreport-wechsler">flipreport-wechsler</option><option value="erfolgswebinar">erfolgswebinar</option><option value="webinar-fehr">webinar-fehr</option><option value="Erstgespraech_20241104">Erstgespraech_20241104</option><option value="villen-launch">villen-launch</option><option value="webinar-wolf">webinar-wolf</option><option value="geistige-heizungsgesetz">geistige-heizungsgesetz</option><option value="vermoegensschutz-checkliste">vermoegensschutz-checkliste</option><option value="corporate-service">corporate-service</option><option value="dubai-islands">dubai-islands</option>
             </select>
+            <div class="add-option-container">
+                <input type="text" class="add-option-input" id="new-leadmagnet" placeholder="Enter new lead magnet">
+                <button class="add-option-btn" onclick="addNewOption('leadmagnet', 'new-leadmagnet')">Add</button>
+            </div>
+            <div id="leadmagnet-success" class="success-message" style="display: none;"></div>
         </div>
 
         <div class="form-group">
@@ -158,6 +205,11 @@
         <div class="form-group">
             <label for="utm_source">utm_source</label>
             <select id="utm_source"></select>
+            <div class="add-option-container">
+                <input type="text" class="add-option-input" id="new-source" placeholder="Enter new source">
+                <button class="add-option-btn" onclick="addNewSource()">Add</button>
+            </div>
+            <div id="source-success" class="success-message" style="display: none;"></div>
         </div>
 
         <div class="form-group">
@@ -197,7 +249,7 @@
     <script>
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyT6f4hHho6hM7F-T_eY_eq8-77j4shh-j26hcoJ9k_mgHSqVXFaFM9FIaEU1Vbnk3d/exec';
 
-        const utmSourceOptions = {
+        let utmSourceOptions = {
             paid: ['meta', 'google', 'linkedin', 'taboola', 'spotify'],
             organic: ['email', 'WebseiteDirekteintragung', 'InvestMenterNewsletter', 'dieterbohlen', 'flipreport', 'flipreport-wechsler', 'Instagram', 'Instagram_Michael', 'villen-launch', 'youtube'],
             cooperation: [ 'EricPromm', 'SteuernMitKopf', 'spotify', 'smth', 'SichtbarerWerden', 'FinanzKongress', 'ThorstenWittmann', 'AngelinaPrzybylski', 'JuergenWechsler', 'MichaelMenter', 'ImmoMemes', 'WalterKraus', 'NorbertDoering', 'CarolavonNordheimGehr', 'AndreasHerrmann', 'UlrichMuller', 'GerdReims', 'DanielKrespach', 'JuergenRausch', 'AnjaBlodow', 'Wieczorek', 'ChristinaOth', 'ThomasHenninger', 'StefanGut', 'NelliLechner', 'MarcelFlaemig', 'GerhardtDorner', 'SteffenScholl', 'DawidPrzybylsky', 'JensRabe', 'Erfolgskongress', 'JoergLoehr', 'Freiheitskongress', 'SebastianKuehner', 'SimInvest', 'MaxWolf', 'KarstenWeichelt'],
@@ -216,6 +268,81 @@
                 option.textContent = optionValue;
                 sourceDropdown.appendChild(option);
             });
+        }
+
+        function addNewSource() {
+            const newSourceInput = document.getElementById('new-source');
+            const newSource = newSourceInput.value.trim();
+            const selectedMedium = document.getElementById('utm_medium').value;
+            const successDiv = document.getElementById('source-success');
+            
+            if (!newSource) {
+                alert('Please enter a source name');
+                return;
+            }
+            
+            // Check if source already exists
+            if (utmSourceOptions[selectedMedium].includes(newSource)) {
+                alert('This source already exists for the selected medium');
+                return;
+            }
+            
+            // Add to the options array
+            utmSourceOptions[selectedMedium].push(newSource);
+            
+            // Update the dropdown
+            updateSourceOptions();
+            
+            // Select the newly added option
+            document.getElementById('utm_source').value = newSource;
+            
+            // Clear the input
+            newSourceInput.value = '';
+            
+            // Show success message
+            successDiv.textContent = `✓ "${newSource}" added successfully!`;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function addNewOption(selectId, inputId) {
+            const newOptionInput = document.getElementById(inputId);
+            const newOption = newOptionInput.value.trim();
+            const selectElement = document.getElementById(selectId);
+            const successDiv = document.getElementById(`${selectId}-success`);
+            
+            if (!newOption) {
+                alert('Please enter a value');
+                return;
+            }
+            
+            // Check if option already exists
+            const existingOptions = Array.from(selectElement.options).map(opt => opt.value);
+            if (existingOptions.includes(newOption)) {
+                alert('This option already exists');
+                return;
+            }
+            
+            // Add new option to the select
+            const option = document.createElement('option');
+            option.value = newOption;
+            option.textContent = newOption;
+            selectElement.appendChild(option);
+            
+            // Select the newly added option
+            selectElement.value = newOption;
+            
+            // Clear the input
+            newOptionInput.value = '';
+            
+            // Show success message
+            successDiv.textContent = `✓ "${newOption}" added successfully!`;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
         }
 
         function handleMediumChange() {
@@ -298,8 +425,30 @@
             document.getElementById('agent_name').selectedIndex = 0;
             document.getElementById('your_link').value = '';
             document.getElementById('status').textContent = '';
+            
+            // Clear add option inputs
+            document.getElementById('new-leadmagnet').value = '';
+            document.getElementById('new-source').value = '';
+            
+            // Hide success messages
+            document.getElementById('leadmagnet-success').style.display = 'none';
+            document.getElementById('source-success').style.display = 'none';
+            
             handleMediumChange();
         }
+
+        // Add Enter key support for input fields
+        document.getElementById('new-leadmagnet').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addNewOption('leadmagnet', 'new-leadmagnet');
+            }
+        });
+
+        document.getElementById('new-source').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addNewSource();
+            }
+        });
 
         window.onload = () => handleMediumChange();
     </script>
