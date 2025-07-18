@@ -6,172 +6,513 @@
     <title>Build Link With Me</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #007bff;
-            --primary-hover: #0056b3;
-            --secondary-color: #6c757d;
-            --secondary-hover: #5a6268;
-            --success-color: #28a745;
-            --success-hover: #218838;
-            --light-gray: #f8f9fa;
-            --border-color: #dee2e6;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --primary-gradient: linear-gradient(135deg, #D4A574 0%, #B8934A 100%);
+            --secondary-gradient: linear-gradient(135deg, #D4A574 0%, #E6C68A 100%);
+            --success-gradient: linear-gradient(135deg, #D4A574 0%, #B8934A 100%);
+            --warning-gradient: linear-gradient(135deg, #D4A574 0%, #E6C68A 100%);
+            --dark-gradient: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --glass-border: rgba(212, 165, 116, 0.3);
+            --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 20px 60px rgba(0, 0, 0, 0.2);
+            --text-primary: #2d3748;
+            --text-secondary: #718096;
+            --border-color: rgba(212, 165, 116, 0.2);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --accent-color: #D4A574;
+            --dark-bg: #1A1A1A;
         }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--light-gray);
-            background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 50%, #1A1A1A 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 40px 20px;
-            min-height: 100vh;
-            box-sizing: border-box;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
         }
-        .container {
-            background-color: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Floating particles background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            max-width: 600px;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(212, 165, 116, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(212, 165, 116, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(212, 165, 116, 0.05) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+            pointer-events: none;
         }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        .container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: var(--shadow-soft);
+            width: 100%;
+            max-width: 700px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+            border-radius: 24px 24px 0 0;
+        }
+
+        .container:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+        }
+
         h1 {
             text-align: center;
-            color: #333;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            letter-spacing: -0.02em;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .description {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 16px;
             margin-bottom: 30px;
+            line-height: 1.6;
+            animation: fadeInUp 0.8s ease-out 0.1s both;
         }
+
+        .support-button {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .btn-support {
+            background: var(--warning-gradient);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 4px 15px rgba(212, 165, 116, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-support::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: var(--transition);
+        }
+
+        .btn-support:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(212, 165, 116, 0.4);
+        }
+
+        .btn-support:hover::before {
+            left: 100%;
+        }
+
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            animation: fadeInUp 0.6s ease-out calc(var(--index) * 0.1s) both;
         }
+
+        .form-group:nth-child(1) { --index: 1; }
+        .form-group:nth-child(2) { --index: 2; }
+        .form-group:nth-child(3) { --index: 3; }
+        .form-group:nth-child(4) { --index: 4; }
+        .form-group:nth-child(5) { --index: 5; }
+        .form-group:nth-child(6) { --index: 6; }
+
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            color: #555;
+            color: var(--text-primary);
             font-weight: 600;
             font-size: 14px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
+
+        .field-description {
+            display: block;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 1.5;
+            font-style: italic;
+        }
+
         .form-group select, .form-group input {
             width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+            padding: 16px 20px;
+            border: 2px solid transparent;
+            border-radius: 12px;
             box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 16px;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: var(--transition);
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            color: var(--text-primary);
         }
+
         .form-group input:disabled,
         .form-group input[readonly] {
-            background-color: #e9ecef;
+            background: rgba(0, 0, 0, 0.05);
             cursor: not-allowed;
+            color: var(--text-secondary);
         }
+
         .form-group select:focus, .form-group input:focus {
             outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 4px rgba(212, 165, 116, 0.2);
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateY(-1px);
         }
+
         .form-group textarea {
             width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+            padding: 16px 20px;
+            border: 2px solid transparent;
+            border-radius: 12px;
             box-sizing: border-box;
             resize: vertical;
-            min-height: 100px;
-            font-family: 'Poppins', sans-serif;
+            min-height: 120px;
+            font-family: 'Inter', sans-serif;
             font-size: 14px;
+            transition: var(--transition);
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            color: var(--text-primary);
         }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 4px rgba(212, 165, 116, 0.2);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
         .add-option-container {
             display: flex;
-            gap: 10px;
-            margin-top: 8px;
+            gap: 12px;
+            margin-top: 12px;
             align-items: center;
         }
+
         .add-option-input {
             flex: 1;
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
+            padding: 12px 16px;
+            border: 2px solid transparent;
+            border-radius: 10px;
             font-size: 14px;
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Inter', sans-serif;
+            transition: var(--transition);
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
         }
+
+        .add-option-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.2);
+        }
+
         .add-option-btn {
-            background-color: var(--success-color);
+            background: var(--success-gradient);
             color: white;
             border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
+            padding: 12px 20px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
-            font-family: 'Poppins', sans-serif;
-            transition: background-color 0.2s;
+            font-family: 'Inter', sans-serif;
+            transition: var(--transition);
             white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(212, 165, 116, 0.3);
+            position: relative;
+            overflow: hidden;
         }
+
+        .add-option-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: var(--transition);
+        }
+
         .add-option-btn:hover {
-            background-color: var(--success-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(212, 165, 116, 0.4);
         }
+
+        .add-option-btn:hover::before {
+            left: 100%;
+        }
+
         .add-option-btn:disabled {
-            background-color: #ccc;
+            background: #ccc;
             cursor: not-allowed;
+            transform: none;
         }
+
         #paid-options-container {
-            border-top: 1px solid var(--border-color);
-            margin-top: 25px;
-            padding-top: 25px;
+            border-top: 2px solid var(--border-color);
+            margin-top: 30px;
+            padding-top: 30px;
+            position: relative;
         }
+
+        #paid-options-container::before {
+            content: 'PAID CAMPAIGN OPTIONS';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: var(--glass-bg);
+            padding: 0 15px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-color);
+            letter-spacing: 1px;
+        }
+
         .btn-container {
             display: flex;
-            gap: 15px;
-            margin-top: 30px;
+            gap: 16px;
+            margin-top: 40px;
         }
+
         .btn {
             flex: 1;
-            background-color: var(--primary-color);
+            background: var(--primary-gradient);
             color: white;
-            padding: 12px 20px;
+            padding: 16px 24px;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 16px;
             font-weight: 600;
-            font-family: 'Poppins', sans-serif;
-            transition: background-color 0.2s, transform 0.2s;
+            font-family: 'Inter', sans-serif;
+            transition: var(--transition);
+            box-shadow: 0 4px 15px rgba(212, 165, 116, 0.3);
+            position: relative;
+            overflow: hidden;
         }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: var(--transition);
+        }
+
         .btn:hover {
-            background-color: var(--primary-hover);
             transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(212, 165, 116, 0.4);
         }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
         .btn-secondary {
-            background-color: var(--secondary-color);
+            background: var(--dark-gradient);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
+
         .btn-secondary:hover {
-            background-color: var(--secondary-hover);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
         }
+
         #status {
             text-align: center;
             margin-top: 20px;
             font-weight: 600;
             height: 20px;
+            font-size: 14px;
+            padding: 10px;
+            border-radius: 8px;
+            transition: var(--transition);
         }
+
         .success-message {
-            color: var(--success-color);
+            color: var(--accent-color);
             font-size: 12px;
-            margin-top: 5px;
+            margin-top: 8px;
             font-weight: 600;
+            padding: 8px 12px;
+            background: rgba(212, 165, 116, 0.1);
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-color);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .btn-container {
+                flex-direction: column;
+            }
+
+            .add-option-container {
+                flex-direction: column;
+            }
+
+            .add-option-btn {
+                width: 100%;
+            }
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(212, 165, 116, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--accent-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Tooltip styles */
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+            z-index: 1000;
+        }
+
+        .tooltip:hover::after {
+            opacity: 1;
+            visibility: visible;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>BUILD LINK WITH ME</h1>
+        
+        <div class="description">
+            Generate professional UTM tracking links for your campaigns with ease. This tool helps you create standardized links for different marketing channels and track their performance effectively.
+        </div>
+
+        <div class="support-button">
+            <a href="https://forms.monday.com/forms/96d88197ad68bc429cdab62007568aad?r=use1" target="_blank" class="btn-support">
+                🆘 Need Help? Submit Support Request
+            </a>
+        </div>
 
         <div class="form-group">
             <label for="domain">Domain</label>
+            <span class="field-description">Select the domain where your landing page is hosted. This determines the base URL for your tracking link.</span>
             <select id="domain">
                 <option value="investmenter.de">investmenter.de</option>
                 <option value="investmenter.com">investmenter.com</option>
@@ -182,6 +523,7 @@
 
         <div class="form-group">
             <label for="leadmagnet">LEADMAGNET</label>
+            <span class="field-description">Choose the lead magnet or content offer that visitors will receive. This becomes part of your URL path and helps identify the specific campaign.</span>
             <select id="leadmagnet">
                 <option value="Vermögenstag">Vermögenstag</option><option value="report24">report24</option><option value="Erstgespraech">Erstgespraech</option><option value="videoseries">videoseries</option><option value="investmentguideAG">investmentguideAG</option><option value="live-webinar">live-webinar</option><option value="investment-report2024">investment-report2024</option><option value="webseite">webseite</option><option value="webinar-report240">webinar-report240</option><option value="haltefrist24-report">haltefrist24-report</option><option value="dieterbohlen">dieterbohlen</option><option value="warteliste">warteliste</option><option value="flipreport">flipreport</option><option value="flipreport-wechsler">flipreport-wechsler</option><option value="erfolgswebinar">erfolgswebinar</option><option value="webinar-fehr">webinar-fehr</option><option value="Erstgespraech_20241104">Erstgespraech_20241104</option><option value="villen-launch">villen-launch</option><option value="webinar-wolf">webinar-wolf</option><option value="geistige-heizungsgesetz">geistige-heizungsgesetz</option><option value="vermoegensschutz-checkliste">vermoegensschutz-checkliste</option><option value="corporate-service">corporate-service</option><option value="dubai-islands">dubai-islands</option>
             </select>
@@ -194,6 +536,7 @@
 
         <div class="form-group">
             <label for="utm_medium">utm_medium</label>
+            <span class="field-description">Select the marketing medium type. This categorizes your traffic source: paid advertising, organic content, partnerships, or referrals.</span>
             <select id="utm_medium" onchange="handleMediumChange()">
                 <option value="organic">organic</option>
                 <option value="paid">paid</option>
@@ -204,6 +547,7 @@
 
         <div class="form-group">
             <label for="utm_source">utm_source</label>
+            <span class="field-description">Specify the exact source of your traffic (e.g., Google, Facebook, newsletter). This identifies where your visitors are coming from.</span>
             <select id="utm_source"></select>
             <div class="add-option-container">
                 <input type="text" class="add-option-input" id="new-source" placeholder="Enter new source">
@@ -214,11 +558,13 @@
 
         <div class="form-group">
             <label for="utm_campaign">utm_campaign</label>
+            <span class="field-description">Campaign name that will be auto-generated based on your selections. For paid campaigns, this includes additional targeting details.</span>
             <input type="text" id="utm_campaign" placeholder="Auto-generated campaign name">
         </div>
 
         <div class="form-group">
             <label for="agent_name">AGENT NAME</label>
+            <span class="field-description">Select the agent or team member responsible for this campaign. This helps track individual performance and attribution.</span>
             <select id="agent_name">
                 <option value="HamedvonInvestMenter">HamedvonInvestMenter</option><option value="BrigitteMenter">BrigitteMenter</option><option value="SusanneStein">SusanneStein</option><option value="LianaMeller">LianaMeller</option><option value="JenniferSteinbeisser">JenniferSteinbeisser</option><option value="FelixHeindoerfer">FelixHeindoerfer</option><option value="MatvfyPlyatskovsky">MatvfyPlyatskovsky</option><option value="Oliverzenz">Oliverzenz</option><option value="BenjaminMorichi">BenjaminMorichi</option><option value="LisaHeimsch">LisaHeimsch</option><option value="AlexandrosKyritsis">AlexandrosKyritsis</option><option value="MichaelLochbrunner">MichaelLochbrunner</option><option value="AnnaHerbst">AnnaHerbst</option><option value="KianoLoehr">KianoLoehr</option><option value="SavvasKyritsis">SavvasKyritsis</option><option value="MichaelMenter">MichaelMenter</option><option value="JimMenter">JimMenter</option><option value="ChristianBruder">ChristianBruder</option><option value="HelmutSokopp">HelmutSokopp</option><option value="MaedhiNasef">MaedhiNasef</option><option value="JoanaReyes">JoanaReyes</option><option value="NicolasKrause">NicolasKrause</option><option value="ThorstenvonRiet">ThorstenvonRiet</option><option value="AniaSchuck">AniaSchuck</option><option value="DarinaKandhorov">DarinaKandhorov</option><option value="MarkusJörie">MarkusJörie</option><option value="JosephRuhhammer">JosephRuhhammer</option><option value="MarcoJaeger">MarcoJaeger</option><option value="AaronKarvani">AaronKarvani</option>
             </select>
@@ -230,16 +576,73 @@
         </div>
 
         <div id="paid-options-container" style="display: none;">
-            <div class="form-group"><label for="tfo_mfo_bfo">TFO MFO BFO (Funnel Stage)</label><select id="tfo_mfo_bfo"><option value="TOF">TOF</option><option value="MOF">MOF</option><option value="BOF">BOF</option></select></div>
-            <div class="form-group"><label for="cbo_abo">CBO or ABO</label><select id="cbo_abo"><option value="CBO">CBO</option><option value="ABO">ABO</option></select></div>
-            <div class="form-group"><label for="campaign_goal">CAMPAIGN GOAL</label><select id="campaign_goal"><option value="Lead">Lead</option><option value="Reach">Reach</option><option value="AB(AppointmentBooked)">AB(AppointmentBooked)</option><option value="Traffic">Traffic</option><option value="Purchase">Purchase</option><option value="Form(Leadgen)">Form(Leadgen)</option></select></div>
-            <div class="form-group"><label for="entry_point">ENTRY POINT</label><select id="entry_point"><option value="Website">Website</option><option value="LeadForm">LeadForm</option><option value="Shop">Shop</option><option value="Download">Download</option></select></div>
-            <div class="form-group"><label for="creative_name">CREATIVE NAME</label><select id="creative_name"><option value="Images">Images</option><option value="geiss">geiss</option><option value="jimssuperbundleA3">jimssuperbundleA3</option><option value="live-webinar">live-webinar</option><option value="DirektImmos">DirektImmos</option><option value="wechsler-report2024">wechsler-report2024</option></select></div>
-            <div class="form-group"><label for="target_group">TARGET GROUP</label><select id="target_group"><option value="LAL">LAL</option><option value="Interest">Interest</option><option value="ALLDACH">ALLDACH</option><option value="KALTDACH-or-BROAD">KALTDACH-or-BROAD</option><option value="Monaco">Monaco</option></select></div>
+            <div class="form-group">
+                <label for="tfo_mfo_bfo">TFO MFO BFO (Funnel Stage)</label>
+                <span class="field-description">Select the funnel stage: Top of Funnel (awareness), Middle of Funnel (consideration), or Bottom of Funnel (decision).</span>
+                <select id="tfo_mfo_bfo">
+                    <option value="TOF">TOF</option>
+                    <option value="MOF">MOF</option>
+                    <option value="BOF">BOF</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="cbo_abo">CBO or ABO</label>
+                <span class="field-description">Choose Campaign Budget Optimization (CBO) or Ad Set Budget Optimization (ABO) for Facebook campaigns.</span>
+                <select id="cbo_abo">
+                    <option value="CBO">CBO</option>
+                    <option value="ABO">ABO</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="campaign_goal">CAMPAIGN GOAL</label>
+                <span class="field-description">Select your primary campaign objective: lead generation, reach, traffic, purchases, or appointment bookings.</span>
+                <select id="campaign_goal">
+                    <option value="Lead">Lead</option>
+                    <option value="Reach">Reach</option>
+                    <option value="AB(AppointmentBooked)">AB(AppointmentBooked)</option>
+                    <option value="Traffic">Traffic</option>
+                    <option value="Purchase">Purchase</option>
+                    <option value="Form(Leadgen)">Form(Leadgen)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="entry_point">ENTRY POINT</label>
+                <span class="field-description">Where will users land when they click your ad? Website, lead form, shop, or download page.</span>
+                <select id="entry_point">
+                    <option value="Website">Website</option>
+                    <option value="LeadForm">LeadForm</option>
+                    <option value="Shop">Shop</option>
+                    <option value="Download">Download</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="creative_name">CREATIVE NAME</label>
+                <span class="field-description">Identify the creative assets used in your campaign (images, videos, or specific creative themes).</span>
+                <select id="creative_name">
+                    <option value="Images">Images</option>
+                    <option value="geiss">geiss</option>
+                    <option value="jimssuperbundleA3">jimssuperbundleA3</option>
+                    <option value="live-webinar">live-webinar</option>
+                    <option value="DirektImmos">DirektImmos</option>
+                    <option value="wechsler-report2024">wechsler-report2024</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="target_group">TARGET GROUP</label>
+                <span class="field-description">Define your audience targeting: Lookalike Audiences (LAL), Interest-based, or geographic targeting.</span>
+                <select id="target_group">
+                    <option value="LAL">LAL</option>
+                    <option value="Interest">Interest</option>
+                    <option value="ALLDACH">ALLDACH</option>
+                    <option value="KALTDACH-or-BROAD">KALTDACH-or-BROAD</option>
+                    <option value="Monaco">Monaco</option>
+                </select>
+            </div>
         </div>
 
         <div class="form-group">
             <label for="your_link">YOUR LINK IS HERE</label>
+            <span class="field-description">Your complete tracking link will appear here. Copy this link to use in your campaigns and marketing materials.</span>
             <textarea id="your_link" readonly></textarea>
         </div>
 
@@ -257,213 +660,4 @@
         let utmSourceOptions = {
             paid: ['meta', 'google', 'linkedin', 'taboola', 'spotify'],
             organic: ['email', 'WebseiteDirekteintragung', 'InvestMenterNewsletter', 'dieterbohlen', 'flipreport', 'flipreport-wechsler', 'Instagram', 'Instagram_Michael', 'villen-launch', 'youtube'],
-            cooperation: [ 'EricPromm', 'SteuernMitKopf', 'spotify', 'smth', 'SichtbarerWerden', 'FinanzKongress', 'ThorstenWittmann', 'AngelinaPrzybylski', 'JuergenWechsler', 'MichaelMenter', 'ImmoMemes', 'WalterKraus', 'NorbertDoering', 'CarolavonNordheimGehr', 'AndreasHerrmann', 'UlrichMuller', 'GerdReims', 'DanielKrespach', 'JuergenRausch', 'AnjaBlodow', 'Wieczorek', 'ChristinaOth', 'ThomasHenninger', 'StefanGut', 'NelliLechner', 'MarcelFlaemig', 'GerhardtDorner', 'SteffenScholl', 'DawidPrzybylsky', 'JensRabe', 'Erfolgskongress', 'JoergLoehr', 'Freiheitskongress', 'SebastianKuehner', 'SimInvest', 'MaxWolf', 'KarstenWeichelt'],
-            referral: [ 'DimitriBuchanow', 'AchimLoosz', 'ClaudiaFrei', 'MarcHundacker', 'JanPeter', 'oliver', 'susanne', 'IwanAdam', 'DanielThabow', 'Alex', 'AnnaHerbst', 'LianaMeller', 'Referral', 'JoachimNiehaus', 'HamedHaghighatger', 'JensRabe', 'FelixHeindörffer', 'RolandElias', 'SavvasKyritsis', 'MikeMiller', 'NasaninBahami', 'ManuelKruck', 'ThomasGehlert', 'KevinHeins-Wigert', 'SachaKremer', 'JimMenter', 'MichaelMenter', 'MartinBeck', 'DoreenZimmermann', 'GerdReims', 'UrsulaErhard', 'DrTanjaHacker', 'MichaelLochbrunner', 'FrankGoldmann', 'MikeAldinger', 'KerstinWieczorek', 'AngelaThomas', 'FraukeLange', 'UweWittner', 'BrigitteMenter', 'MohammedRizwan', 'SammyPesenti', 'ChristineBaumgartner']
-        };
-
-        function updateSourceOptions() {
-            const mediumDropdown = document.getElementById('utm_medium');
-            const sourceDropdown = document.getElementById('utm_source');
-            const selectedMedium = mediumDropdown.value;
-            sourceDropdown.innerHTML = '';
-            const options = Array.from(new Set(utmSourceOptions[selectedMedium] || []));
-            options.forEach(optionValue => {
-                const option = document.createElement('option');
-                option.value = optionValue;
-                option.textContent = optionValue;
-                sourceDropdown.appendChild(option);
-            });
-        }
-
-        function addNewSource() {
-            const newSourceInput = document.getElementById('new-source');
-            const newSource = newSourceInput.value.trim();
-            const selectedMedium = document.getElementById('utm_medium').value;
-            const successDiv = document.getElementById('source-success');
-            
-            if (!newSource) {
-                alert('Please enter a source name');
-                return;
-            }
-            
-            // Check if source already exists
-            if (utmSourceOptions[selectedMedium].includes(newSource)) {
-                alert('This source already exists for the selected medium');
-                return;
-            }
-            
-            // Add to the options array
-            utmSourceOptions[selectedMedium].push(newSource);
-            
-            // Update the dropdown
-            updateSourceOptions();
-            
-            // Select the newly added option
-            document.getElementById('utm_source').value = newSource;
-            
-            // Clear the input
-            newSourceInput.value = '';
-            
-            // Show success message
-            successDiv.textContent = `✓ "${newSource}" added successfully!`;
-            successDiv.style.display = 'block';
-            setTimeout(() => {
-                successDiv.style.display = 'none';
-            }, 3000);
-        }
-
-        function addNewOption(selectId, inputId) {
-            const newOptionInput = document.getElementById(inputId);
-            const newOption = newOptionInput.value.trim();
-            const selectElement = document.getElementById(selectId);
-            const successDiv = document.getElementById(`${selectId}-success`);
-            
-            if (!newOption) {
-                alert('Please enter a value');
-                return;
-            }
-            
-            // Check if option already exists
-            const existingOptions = Array.from(selectElement.options).map(opt => opt.value);
-            if (existingOptions.includes(newOption)) {
-                alert('This option already exists');
-                return;
-            }
-            
-            // Add new option to the select
-            const option = document.createElement('option');
-            option.value = newOption;
-            option.textContent = newOption;
-            selectElement.appendChild(option);
-            
-            // Select the newly added option
-            selectElement.value = newOption;
-            
-            // Clear the input
-            newOptionInput.value = '';
-            
-            // Show success message
-            successDiv.textContent = `✓ "${newOption}" added successfully!`;
-            successDiv.style.display = 'block';
-            setTimeout(() => {
-                successDiv.style.display = 'none';
-            }, 3000);
-        }
-
-        function handleMediumChange() {
-            const medium = document.getElementById('utm_medium').value;
-            const paidContainer = document.getElementById('paid-options-container');
-            const campaignInput = document.getElementById('utm_campaign');
-            paidContainer.style.display = (medium === 'paid') ? 'block' : 'none';
-            campaignInput.readOnly = (medium === 'paid'); // Only readonly for paid
-            if (medium === 'paid') {
-                campaignInput.value = '';
-            } else {
-                campaignInput.readOnly = false;
-            }
-            updateSourceOptions();
-        }
-
-        function generateLink() {
-            const domain = document.getElementById('domain').value;
-            const leadmagnet = document.getElementById('leadmagnet').value;
-            const utmMedium = document.getElementById('utm_medium').value;
-            const utmSource = document.getElementById('utm_source').value;
-            const agentName = document.getElementById('agent_name').value;
-            const today = new Date();
-            const dateString = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
-
-            let utmCampaign = '';
-
-            if (utmMedium === 'paid') {
-                const campaignGoal = document.getElementById('campaign_goal').value;
-                const targetGroup = document.getElementById('target_group').value;
-                utmCampaign = `${campaignGoal}_${leadmagnet}_${targetGroup}_${dateString}`;
-            } else {
-                utmCampaign = `${leadmagnet}_${dateString}`; // Agent removed here!
-            }
-            document.getElementById('utm_campaign').value = utmCampaign;
-
-            let currentURL = '';
-            const param1Name = 'utm_source';
-            const param1Value = utmSource;
-            const param2Name = 'utm_medium';
-            const param2Value = utmMedium;
-            const param3Name = 'utm_campaign';
-            const param3Value = utmCampaign;
-            const additionalPathE3 = agentName;
-            const additionalPathK3 = leadmagnet;
-
-            if (utmMedium === 'paid') {
-                const base = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}`;
-                switch (utmSource.toLowerCase()) {
-                    case 'meta': currentURL = `${base}&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}`; break;
-                    case 'google': currentURL = `${base}&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}`; break;
-                    default: currentURL = base; break;
-                }
-            } else {
-                currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&utm_agent=${additionalPathE3}`;
-            }
-
-            document.getElementById('your_link').value = currentURL;
-            return { link: currentURL, data: { domain, leadmagnet, utmMedium, utmSource, utmCampaign, agentName, generatedLink: currentURL } };
-        }
-
-        function generateAndSaveLink() {
-            const statusDiv = document.getElementById('status');
-            const { link, data } = generateLink();
-            if (!link) { statusDiv.textContent = 'Cannot save an empty link.'; statusDiv.style.color = 'red'; return; }
-            if (GOOGLE_SCRIPT_URL === 'PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE') { statusDiv.textContent = 'Setup required: Add Google Script URL.'; statusDiv.style.color = 'orange'; return; }
-            statusDiv.textContent = 'Saving...'; statusDiv.style.color = 'gray';
-            fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'cors', body: JSON.stringify(data) })
-            .then(r => r.json()).then(res => {
-                if (res.result === 'success') { statusDiv.textContent = 'Saved to Google Sheet successfully!'; statusDiv.style.color = 'green'; }
-                else { throw new Error(res.error); }
-            }).catch(error => { console.error('Error:', error); statusDiv.textContent = 'Error saving to sheet. Check console.'; statusDiv.style.color = 'red'; });
-        }
-
-        function createNewLink() {
-            document.getElementById('domain').selectedIndex = 0;
-            document.getElementById('leadmagnet').selectedIndex = 0;
-            document.getElementById('utm_medium').selectedIndex = 0;
-            document.getElementById('utm_campaign').value = '';
-            document.getElementById('agent_name').selectedIndex = 0;
-            document.getElementById('your_link').value = '';
-            document.getElementById('status').textContent = '';
-            
-            // Clear add option inputs
-            document.getElementById('new-leadmagnet').value = '';
-            document.getElementById('new-source').value = '';
-            document.getElementById('new-agent').value = '';
-            
-            // Hide success messages
-            document.getElementById('leadmagnet-success').style.display = 'none';
-            document.getElementById('source-success').style.display = 'none';
-            document.getElementById('agent_name-success').style.display = 'none';
-            
-            handleMediumChange();
-        }
-
-        // Add Enter key support for input fields
-        document.getElementById('new-leadmagnet').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                addNewOption('leadmagnet', 'new-leadmagnet');
-            }
-        });
-
-        document.getElementById('new-source').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                addNewSource();
-            }
-        });
-
-        document.getElementById('new-agent').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                addNewOption('agent_name', 'new-agent');
-            }
-        });
-
-        window.onload = () => handleMediumChange();
-    </script>
-</body>
-</html>
+            cooperation: ['EricPromm', 'SteuernMitKopf', 'spotify', 'smth', '
