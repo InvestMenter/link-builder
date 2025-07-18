@@ -660,4 +660,213 @@
         let utmSourceOptions = {
             paid: ['meta', 'google', 'linkedin', 'taboola', 'spotify'],
             organic: ['email', 'WebseiteDirekteintragung', 'InvestMenterNewsletter', 'dieterbohlen', 'flipreport', 'flipreport-wechsler', 'Instagram', 'Instagram_Michael', 'villen-launch', 'youtube'],
-            cooperation: ['EricPromm', 'SteuernMitKopf', 'spotify', 'smth', '
+            cooperation: [ 'EricPromm', 'SteuernMitKopf', 'spotify', 'smth', 'SichtbarerWerden', 'FinanzKongress', 'ThorstenWittmann', 'AngelinaPrzybylski', 'JuergenWechsler', 'MichaelMenter', 'ImmoMemes', 'WalterKraus', 'NorbertDoering', 'CarolavonNordheimGehr', 'AndreasHerrmann', 'UlrichMuller', 'GerdReims', 'DanielKrespach', 'JuergenRausch', 'AnjaBlodow', 'Wieczorek', 'ChristinaOth', 'ThomasHenninger', 'StefanGut', 'NelliLechner', 'MarcelFlaemig', 'GerhardtDorner', 'SteffenScholl', 'DawidPrzybylsky', 'JensRabe', 'Erfolgskongress', 'JoergLoehr', 'Freiheitskongress', 'SebastianKuehner', 'SimInvest', 'MaxWolf', 'KarstenWeichelt'],
+            referral: [ 'DimitriBuchanow', 'AchimLoosz', 'ClaudiaFrei', 'MarcHundacker', 'JanPeter', 'oliver', 'susanne', 'IwanAdam', 'DanielThabow', 'Alex', 'AnnaHerbst', 'LianaMeller', 'Referral', 'JoachimNiehaus', 'HamedHaghighatger', 'JensRabe', 'FelixHeindörffer', 'RolandElias', 'SavvasKyritsis', 'MikeMiller', 'NasaninBahami', 'ManuelKruck', 'ThomasGehlert', 'KevinHeins-Wigert', 'SachaKremer', 'JimMenter', 'MichaelMenter', 'MartinBeck', 'DoreenZimmermann', 'GerdReims', 'UrsulaErhard', 'DrTanjaHacker', 'MichaelLochbrunner', 'FrankGoldmann', 'MikeAldinger', 'KerstinWieczorek', 'AngelaThomas', 'FraukeLange', 'UweWittner', 'BrigitteMenter', 'MohammedRizwan', 'SammyPesenti', 'ChristineBaumgartner']
+        };
+
+        function updateSourceOptions() {
+            const mediumDropdown = document.getElementById('utm_medium');
+            const sourceDropdown = document.getElementById('utm_source');
+            const selectedMedium = mediumDropdown.value;
+            sourceDropdown.innerHTML = '';
+            const options = Array.from(new Set(utmSourceOptions[selectedMedium] || []));
+            options.forEach(optionValue => {
+                const option = document.createElement('option');
+                option.value = optionValue;
+                option.textContent = optionValue;
+                sourceDropdown.appendChild(option);
+            });
+        }
+
+        function addNewSource() {
+            const newSourceInput = document.getElementById('new-source');
+            const newSource = newSourceInput.value.trim();
+            const selectedMedium = document.getElementById('utm_medium').value;
+            const successDiv = document.getElementById('source-success');
+            
+            if (!newSource) {
+                alert('Please enter a source name');
+                return;
+            }
+            
+            // Check if source already exists
+            if (utmSourceOptions[selectedMedium].includes(newSource)) {
+                alert('This source already exists for the selected medium');
+                return;
+            }
+            
+            // Add to the options array
+            utmSourceOptions[selectedMedium].push(newSource);
+            
+            // Update the dropdown
+            updateSourceOptions();
+            
+            // Select the newly added option
+            document.getElementById('utm_source').value = newSource;
+            
+            // Clear the input
+            newSourceInput.value = '';
+            
+            // Show success message
+            successDiv.textContent = `✓ "${newSource}" added successfully!`;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function addNewOption(selectId, inputId) {
+            const newOptionInput = document.getElementById(inputId);
+            const newOption = newOptionInput.value.trim();
+            const selectElement = document.getElementById(selectId);
+            const successDiv = document.getElementById(`${selectId}-success`);
+            
+            if (!newOption) {
+                alert('Please enter a value');
+                return;
+            }
+            
+            // Check if option already exists
+            const existingOptions = Array.from(selectElement.options).map(opt => opt.value);
+            if (existingOptions.includes(newOption)) {
+                alert('This option already exists');
+                return;
+            }
+            
+            // Add new option to the select
+            const option = document.createElement('option');
+            option.value = newOption;
+            option.textContent = newOption;
+            selectElement.appendChild(option);
+            
+            // Select the newly added option
+            selectElement.value = newOption;
+            
+            // Clear the input
+            newOptionInput.value = '';
+            
+            // Show success message
+            successDiv.textContent = `✓ "${newOption}" added successfully!`;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function handleMediumChange() {
+            const medium = document.getElementById('utm_medium').value;
+            const paidContainer = document.getElementById('paid-options-container');
+            const campaignInput = document.getElementById('utm_campaign');
+            paidContainer.style.display = (medium === 'paid') ? 'block' : 'none';
+            campaignInput.readOnly = (medium === 'paid'); // Only readonly for paid
+            if (medium === 'paid') {
+                campaignInput.value = '';
+            } else {
+                campaignInput.readOnly = false;
+            }
+            updateSourceOptions();
+        }
+
+        function generateLink() {
+            const domain = document.getElementById('domain').value;
+            const leadmagnet = document.getElementById('leadmagnet').value;
+            const utmMedium = document.getElementById('utm_medium').value;
+            const utmSource = document.getElementById('utm_source').value;
+            const agentName = document.getElementById('agent_name').value;
+            const today = new Date();
+            const dateString = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+
+            let utmCampaign = '';
+
+            if (utmMedium === 'paid') {
+                const campaignGoal = document.getElementById('campaign_goal').value;
+                const targetGroup = document.getElementById('target_group').value;
+                utmCampaign = `${campaignGoal}_${leadmagnet}_${targetGroup}_${dateString}`;
+            } else {
+                utmCampaign = `${leadmagnet}_${dateString}`; // Agent removed here!
+            }
+            document.getElementById('utm_campaign').value = utmCampaign;
+
+            let currentURL = '';
+            const param1Name = 'utm_source';
+            const param1Value = utmSource;
+            const param2Name = 'utm_medium';
+            const param2Value = utmMedium;
+            const param3Name = 'utm_campaign';
+            const param3Value = utmCampaign;
+            const additionalPathE3 = agentName;
+            const additionalPathK3 = leadmagnet;
+
+            if (utmMedium === 'paid') {
+                const base = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}`;
+                switch (utmSource.toLowerCase()) {
+                    case 'meta': currentURL = `${base}&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}`; break;
+                    case 'google': currentURL = `${base}&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}`; break;
+                    default: currentURL = base; break;
+                }
+            } else {
+                currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&utm_agent=${additionalPathE3}`;
+            }
+
+            document.getElementById('your_link').value = currentURL;
+            return { link: currentURL, data: { domain, leadmagnet, utmMedium, utmSource, utmCampaign, agentName, generatedLink: currentURL } };
+        }
+
+        function generateAndSaveLink() {
+            const statusDiv = document.getElementById('status');
+            const { link, data } = generateLink();
+            if (!link) { statusDiv.textContent = 'Cannot save an empty link.'; statusDiv.style.color = 'red'; return; }
+            if (GOOGLE_SCRIPT_URL === 'PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE') { statusDiv.textContent = 'Setup required: Add Google Script URL.'; statusDiv.style.color = 'orange'; return; }
+            statusDiv.textContent = 'Saving...'; statusDiv.style.color = 'gray';
+            fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'cors', body: JSON.stringify(data) })
+            .then(r => r.json()).then(res => {
+                if (res.result === 'success') { statusDiv.textContent = 'Saved to Google Sheet successfully!'; statusDiv.style.color = 'green'; }
+                else { throw new Error(res.error); }
+            }).catch(error => { console.error('Error:', error); statusDiv.textContent = 'Error saving to sheet. Check console.'; statusDiv.style.color = 'red'; });
+        }
+
+        function createNewLink() {
+            document.getElementById('domain').selectedIndex = 0;
+            document.getElementById('leadmagnet').selectedIndex = 0;
+            document.getElementById('utm_medium').selectedIndex = 0;
+            document.getElementById('utm_campaign').value = '';
+            document.getElementById('agent_name').selectedIndex = 0;
+            document.getElementById('your_link').value = '';
+            document.getElementById('status').textContent = '';
+            
+            // Clear add option inputs
+            document.getElementById('new-leadmagnet').value = '';
+            document.getElementById('new-source').value = '';
+            document.getElementById('new-agent').value = '';
+            
+            // Hide success messages
+            document.getElementById('leadmagnet-success').style.display = 'none';
+            document.getElementById('source-success').style.display = 'none';
+            document.getElementById('agent_name-success').style.display = 'none';
+            
+            handleMediumChange();
+        }
+
+        // Add Enter key support for input fields
+        document.getElementById('new-leadmagnet').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addNewOption('leadmagnet', 'new-leadmagnet');
+            }
+        });
+
+        document.getElementById('new-source').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addNewSource();
+            }
+        });
+
+        document.getElementById('new-agent').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addNewOption('agent_name', 'new-agent');
+            }
+        });
+
+        window.onload = () => handleMediumChange();
+    </script>
+</body>
+</html>
