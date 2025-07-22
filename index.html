@@ -717,7 +717,7 @@
 
         function addNewOption(selectId, inputId) {
             const newOptionInput = document.getElementById(inputId);
-            const newOption = newOptionInput.value.trim();
+            const newOption = newOptionInput.value.replace(/\s/g, '');
             const selectElement = document.getElementById(selectId);
             const successDiv = document.getElementById(`${selectId}-success`);
             
