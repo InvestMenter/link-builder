@@ -680,7 +680,7 @@
 
         function addNewSource() {
             const newSourceInput = document.getElementById('new-source');
-            const newSource = newSourceInput.value.trim();
+            const newSource = newSourceInput.value.replace(/\s/g, '');
             const selectedMedium = document.getElementById('utm_medium').value;
             const successDiv = document.getElementById('source-success');
             
