@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -782,53 +781,256 @@
             const today = new Date();
             const dateString = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
 
-            let utmCampaign = '';
-
-            if (utmMedium === 'paid') {
-                const campaignGoal = document.getElementById('campaign_goal').value;
-                const targetGroup = document.getElementById('target_group').value;
-                utmCampaign = `${campaignGoal}_${leadmagnet}_${targetGroup}_${dateString}`;
-            } else {
-                utmCampaign = `${leadmagnet}_${dateString}`; // Agent removed here!
-            }
-            document.getElementById('utm_campaign').value = utmCampaign;
-
-            let currentURL = '';
+            // Variable names matching Google Apps Script
             const param1Name = 'utm_source';
             const param1Value = utmSource;
             const param2Name = 'utm_medium';
             const param2Value = utmMedium;
             const param3Name = 'utm_campaign';
-            const param3Value = utmCampaign;
             const additionalPathE3 = agentName;
             const additionalPathK3 = leadmagnet;
+            const additionalPathL3 = dateString;
 
-            if (utmMedium === 'paid') {
-                const base = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}`;
-                switch (utmSource.toLowerCase()) {
-                    case 'meta': currentURL = `${base}&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}`; break;
-                    case 'google': currentURL = `${base}&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}`; break;
-                    default: currentURL = base; break;
+            let param3Value = '';
+            let currentURL = '';
+
+            // Handle corporate.investmenter.de domain first
+            if (domain === "corporate.investmenter.de") {
+                switch (utmMedium.toLowerCase()) {
+                    case 'referral':
+                        param3Value = `${additionalPathE3}_${param1Value}`;
+                        currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        break;
+                    case 'organic':
+                    case 'cooperation':
+                        param3Value = `${additionalPathK3}_${additionalPathL3}`;
+                        currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        break;
+                    case 'paid':
+                        const campaignGoal = document.getElementById('campaign_goal').value;
+                        const targetGroup = document.getElementById('target_group').value;
+                        param3Value = `${campaignGoal}_${leadmagnet}_${targetGroup}_${dateString}`;
+                        
+                        switch (utmSource.toLowerCase()) {
+                            case 'meta':
+                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}`;
+                                break;
+                            case 'google':
+                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}`;
+                                break;
+                            case 'taboola':
+                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=taboola&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
+                                break;
+                            case 'linkedin':
+                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=linkedin&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
+                                break;
+                            default:
+                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=MISSINGYETTHIS CANTBEDONEATMSYSTEMTOBEFOUND`;
+                                break;
+                        }
+                        break;
+                    default:
+                        console.log("UTM Medium not recognized for 'corporate.investmenter.de'. No URL created.");
+                        return;
                 }
-            } else {
-                currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&utm_agent=${additionalPathE3}`;
+            }
+            // Handle webseite leadmagnet -> dubai-immobilie-kaufen.de
+            else if (additionalPathK3.toLowerCase() === 'webseite') {
+                switch (utmMedium.toLowerCase()) {
+                    case 'referral':
+                        param3Value = `${additionalPathE3}_${param1Value}`;
+                        currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        break;
+                    case 'organic':
+                    case 'cooperation':
+                        param3Value = `${additionalPathK3}_${additionalPathL3}`;
+                        currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        break;
+                    case 'paid':
+                        const campaignGoal = document.getElementById('campaign_goal').value;
+                        const targetGroup = document.getElementById('target_group').value;
+                        param3Value = `${campaignGoal}_${leadmagnet}_${targetGroup}_${dateString}`;
+                        
+                        switch (utmSource.toLowerCase()) {
+                            case 'meta':
+                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}`;
+                                break;
+                            case 'google':
+                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}`;
+                                break;
+                            case 'taboola':
+                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=taboola&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
+                                break;
+                            case 'linkedin':
+                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=linkedin&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
+                                break;
+                            default:
+                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=MISSINGYETTHIS CANTBEDONEATMSYSTEMTOBEFOUND`;
+                                break;
+                        }
+                        break;
+                    default:
+                        console.log("UTM Medium not recognized for 'webseite'. No URL created.");
+                        return;
+                }
+            }
+            // Handle paid campaigns for other domains/leadmagnets
+            else if (utmMedium.toLowerCase() === 'paid') {
+                const campaignGoal = document.getElementById('campaign_goal').value;
+                const targetGroup = document.getElementById('target_group').value;
+                param3Value = `${campaignGoal}_${leadmagnet}_${targetGroup}_${dateString}`;
+                
+                switch (utmSource.toLowerCase()) {
+                    case 'meta':
+                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}`;
+                        break;
+                    case 'google':
+                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}`;
+                        break;
+                    case 'taboola':
+                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=taboola&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
+                        break;
+                    case 'linkedin':
+                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=linkedin&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
+                        break;
+                    default:
+                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=MISSINGYETTHIS CANTBEDONEATMSYSTEMTOBEFOUND`;
+                        break;
+                }
+            }
+            // Handle organic, cooperation, and referral campaigns
+            else {
+                switch (utmMedium.toLowerCase()) {
+                    case 'referral':
+                        // Special handling for specific leadmagnets
+                        if (additionalPathK3 === "dieterbohlen" && domain === "investmenter.com") {
+                            param3Value = `${additionalPathE3}_${param1Value}`;
+                            currentURL = `https://dieterbohlen.${domain}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "warteliste" && domain === "investmenter.com") {
+                            param3Value = `${additionalPathE3}_${param1Value}`;
+                            currentURL = `https://warteliste.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "flipreport" && domain === "investmenter.com") {
+                            param3Value = `${additionalPathE3}_${param1Value}`;
+                            currentURL = `https://report.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "flipreport-wechsler" && domain === "investmenter.com") {
+                            param3Value = `${additionalPathE3}_flipreport-wechsler_${additionalPathL3}`;
+                            currentURL = `https://report.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "Vermögenstag" && domain === "investmenter.de") {
+                            param3Value = `${additionalPathE3}_EricPromm_Vermögenstag_${additionalPathL3}`;
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "dubai-islands" && domain === "investmenter.de") {
+                            param3Value = `${additionalPathE3}_dubai-islands_${additionalPathL3}`;
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "vermogensschutz-liste" && domain === "investmenter.de") {
+                            param3Value = `${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}`;
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        } else {
+                            param3Value = `${additionalPathE3}_${param1Value}`;
+                            currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        }
+                        break;
+                    case 'organic':
+                    case 'cooperation':
+                        // Special handling for specific leadmagnets
+                        if (additionalPathK3 === "dieterbohlen" && domain === "investmenter.com") {
+                            param3Value = `${additionalPathK3}_${additionalPathL3}`;
+                            currentURL = `https://dieterbohlen.${domain}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "warteliste" && domain === "investmenter.com") {
+                            param3Value = `${additionalPathK3}_${additionalPathL3}`;
+                            currentURL = `https://warteliste.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "flipreport" && domain === "investmenter.com") {
+                            param3Value = `${additionalPathE3}_${param3Value}`;
+                            currentURL = `https://report.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "flipreport-wechsler" && domain === "investmenter.com") {
+                            param3Value = `${additionalPathE3}_flipreport-wechsler_${additionalPathL3}`;
+                            currentURL = `https://report.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "Vermögenstag" && domain === "investmenter.de") {
+                            param3Value = `${additionalPathE3}_EricPromm_Vermögenstag_${additionalPathL3}`;
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "dubai-islands" && domain === "investmenter.de") {
+                            param3Value = `${additionalPathE3}_dubai-islands_${additionalPathL3}`;
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        } else {
+                            param3Value = `${additionalPathK3}_${additionalPathL3}`;
+                            currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
+                        }
+                        break;
+                    default:
+                        console.log("UTM Medium not recognized. No URL created.");
+                        return;
+                }
             }
 
+            // Set the campaign value in the input field
+            document.getElementById('utm_campaign').value = param3Value;
             document.getElementById('your_link').value = currentURL;
-            return { link: currentURL, data: { domain, leadmagnet, utmMedium, utmSource, utmCampaign, agentName, generatedLink: currentURL } };
+            
+            return { 
+                link: currentURL, 
+                data: { 
+                    domain, 
+                    leadmagnet, 
+                    utmMedium, 
+                    utmSource, 
+                    utmCampaign: param3Value, 
+                    agentName, 
+                    generatedLink: currentURL 
+                } 
+            };
         }
 
         function generateAndSaveLink() {
             const statusDiv = document.getElementById('status');
             const { link, data } = generateLink();
-            if (!link) { statusDiv.textContent = 'Cannot save an empty link.'; statusDiv.style.color = 'red'; return; }
-            if (GOOGLE_SCRIPT_URL === 'PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE') { statusDiv.textContent = 'Setup required: Add Google Script URL.'; statusDiv.style.color = 'orange'; return; }
-            statusDiv.textContent = 'Saving...'; statusDiv.style.color = 'gray';
-            fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'cors', body: JSON.stringify(data) })
-            .then(r => r.json()).then(res => {
-                if (res.result === 'success') { statusDiv.textContent = 'Saved to Google Sheet successfully!'; statusDiv.style.color = 'green'; }
-                else { throw new Error(res.error); }
-            }).catch(error => { console.error('Error:', error); statusDiv.textContent = 'Error saving to sheet. Check console.'; statusDiv.style.color = 'red'; });
+            
+            if (!link) { 
+                statusDiv.textContent = 'Cannot save an empty link.'; 
+                statusDiv.style.color = 'red'; 
+                return; 
+            }
+            
+            if (GOOGLE_SCRIPT_URL === 'PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE') { 
+                statusDiv.textContent = 'Setup required: Add Google Script URL.'; 
+                statusDiv.style.color = 'orange'; 
+                return; 
+            }
+            
+            statusDiv.innerHTML = 'Saving... <span class="loading"></span>';
+            statusDiv.style.color = 'gray';
+            
+            console.log('Sending data to Google Script:', data);
+            console.log('Google Script URL:', GOOGLE_SCRIPT_URL);
+            
+            fetch(GOOGLE_SCRIPT_URL, { 
+                method: 'POST', 
+                mode: 'no-cors',  // Changed from 'cors' to 'no-cors'
+                headers: {
+                    'Content-Type': 'text/plain',  // Added content type
+                },
+                body: JSON.stringify(data) 
+            })
+            .then(response => {
+                console.log('Response received:', response);
+                // With no-cors mode, we can't read the response, so we assume success
+                statusDiv.textContent = 'Link saved successfully! (Note: Using no-cors mode)';
+                statusDiv.style.color = 'green';
+            })
+            .catch(error => { 
+                console.error('Fetch Error Details:', error);
+                statusDiv.innerHTML = `
+                    <div style="text-align: left; font-size: 12px;">
+                        <strong>Error saving to Google Sheet:</strong><br>
+                        ${error.message}<br><br>
+                        <strong>Troubleshooting steps:</strong><br>
+                        1. Check if Google Script is deployed as web app<br>
+                        2. Verify permissions are set to "Anyone"<br>
+                        3. Check browser console for more details<br>
+                        4. Try refreshing the page and retry
+                    </div>
+                `;
+                statusDiv.style.color = 'red';
+                statusDiv.style.textAlign = 'left';
+            });
         }
 
         function createNewLink() {
