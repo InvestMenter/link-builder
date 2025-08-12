@@ -1001,9 +1001,8 @@
         let currentUserType = 'internal';
         let isReferralMode = false;
         let isKongressMode = false;
-        let debugMode = false; // Set to true to enable debug info
+        let debugMode = false; 
         
-        // Stores generated referrer IDs for each UTM source to ensure consistency
         let sourceReferrerMap = {};
 
         let utmSourceOptions = {
@@ -1013,68 +1012,52 @@
             referral: [ 'DimitriBuchanow', 'AchimLoosz', 'ClaudiaFrei', 'MarcHundacker', 'JanPeter', 'oliver', 'susanne', 'IwanAdam', 'DanielThabow', 'Alex', 'AnnaHerbst', 'LianaMeller', 'Referral', 'JoachimNiehaus', 'HamedHaghighatger', 'JensRabe', 'FelixHeindoerfer', 'RolandElias', 'SavvasKyritsis', 'MikeMiller', 'NasaninBahami', 'ManuelKruck', 'ThomasGehlert', 'KevinHeins-Wigert', 'SachaKremer', 'JimMenter', 'MichaelMenter', 'MartinBeck', 'DoreenZimmermann', 'GerdReims', 'UrsulaErhard', 'DrTanjaHacker', 'MichaelLochbrunner', 'FrankGoldmann', 'MikeAldinger', 'KerstinWieczorek', 'AngelaThomas', 'FraukeLange', 'UweWittner', 'BrigitteMenter', 'MohammedRizwan', 'SammyPesenti', 'ChristineBaumgartner']
         };
         
-        // Enhanced path sanitization function for LeadMagnet/Source format
         function sanitizePath(path) {
             if (!path) return '';
-            
-            // Split by forward slash to handle LeadMagnet/Source format
             const parts = path.split('/');
-            
-            // Sanitize each part separately
             const sanitizedParts = parts.map(part => {
                 return part
                     .toLowerCase()
-                    .replace(/[^a-z0-9-_]/g, '') // Remove special chars except hyphens and underscores
-                    .replace(/--+/g, '-') // Replace multiple hyphens with single hyphen
-                    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
-                    .substring(0, 25); // Limit each part to 25 characters
-            }).filter(part => part.length > 0); // Remove empty parts
-            
-            // Rejoin with forward slash
+                    .replace(/[^a-z0-9-_]/g, '')
+                    .replace(/--+/g, '-')
+                    .replace(/^-+|-+$/g, '')
+                    .substring(0, 25);
+            }).filter(part => part.length > 0);
             const result = sanitizedParts.join('/');
-            
-            // Ensure total length doesn't exceed 50 characters
             return result.substring(0, 50);
         }
 
-        // Enhanced short link creation with clean path strategies (no numbers)
+        // --- START: MODIFIED createShortLink FUNCTION ---
         async function createShortLink(longUrl, title, path) {
             const SHORT_IO_API_URL = 'https://api.short.io/links/public';
-            
-            // Sanitize the path
             const sanitizedPath = sanitizePath(path);
             
-            // Try clean path strategies without any numbers
+            // Define path strategies: try the clean path first, then fall back to a random one.
             const pathStrategies = [
-                sanitizedPath, // Original clean path (e.g., dubai-islands/email)
-                null // Final fallback - no custom path, let Short.io auto-generate
+                sanitizedPath, // 1st Attempt: "leadmagnet/source"
+                null           // 2nd Attempt: Let Short.io auto-generate a path
             ];
 
             let lastError = null;
             
             for (let i = 0; i < pathStrategies.length; i++) {
                 const currentPath = pathStrategies[i];
-                
                 try {
                     if (debugMode) {
                         console.log(`Attempting path strategy ${i + 1}: "${currentPath || 'auto-generated'}"`);
                     }
-                    
                     const requestBody = {
                         originalURL: longUrl,
                         domain: SHORT_IO_DOMAIN,
                         title: title
                     };
-                    
-                    // Only add path if it's not null (for auto-generation)
                     if (currentPath !== null && currentPath.length > 0) {
                         requestBody.path = currentPath;
                     }
-                    
                     const response = await fetch(SHORT_IO_API_URL, {
                         method: 'POST',
                         headers: {
-                            'authorization': SHORT_IO_API_KEY, 
+                            'authorization': SHORT_IO_API_KEY,
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify(requestBody)
@@ -1082,42 +1065,29 @@
 
                     if (response.ok) {
                         const data = await response.json();
-                        if (debugMode) {
-                            console.log(`Success with path strategy ${i + 1}:`, data);
-                        }
+                        if (debugMode) console.log(`Success with path strategy ${i + 1}:`, data);
                         return data.shortURL;
                     } else {
                         const errorData = await response.json();
                         lastError = errorData;
-                        
-                        if (debugMode) {
-                            console.log(`Strategy ${i + 1} failed:`, errorData);
-                        }
-                        
-                        // If it's a path conflict (409) or path validation error, try next strategy
+                        if (debugMode) console.log(`Strategy ${i + 1} failed:`, errorData);
                         if (response.status === 409 || (errorData.error && errorData.error.toLowerCase().includes('path'))) {
                             continue;
                         } else {
-                            // For other errors, throw immediately
                             throw new Error(`API error ${response.status}: ${errorData.error || 'Unknown error'}`);
                         }
                     }
                 } catch (error) {
                     lastError = error;
-                    if (debugMode) {
-                        console.log(`Strategy ${i + 1} exception:`, error);
-                    }
-                    
-                    // If it's a network error or non-path related error, try next strategy
+                    if (debugMode) console.log(`Strategy ${i + 1} exception:`, error);
                     if (i < pathStrategies.length - 1) {
                         continue;
                     }
                 }
             }
-            
-            // If we get here, all strategies failed
-            throw lastError || new Error('All path strategies failed');
+            throw lastError || new Error('All path creation strategies failed');
         }
+        // --- END: MODIFIED createShortLink FUNCTION ---
 
         function updateDebugInfo(info) {
             if (debugMode) {
@@ -1137,56 +1107,51 @@
         }
         
         function generateUniqueReferrerContent() {
-            // To get a 12-character Base64 string, we need 9 bytes/characters of input.
-            // We use the last 9 digits of the current timestamp for a unique, 9-digit number.
             return Date.now().toString().slice(-9);
         }
 
         function updateKongressReferralField() {
+            if (isReferralMode) {
+                document.getElementById('kongress-referral-section').classList.add('hidden');
+                document.getElementById('kongress_referral_id').value = '';
+                return;
+            }
             const leadmagnet = document.getElementById('leadmagnet').value;
             const referralSection = document.getElementById('kongress-referral-section');
             const referralInput = document.getElementById('kongress_referral_id');
             const referralDescription = document.getElementById('kongress-referral-description');
-
             if (leadmagnet !== 'Kongress') {
                 referralSection.classList.add('hidden');
                 referralInput.value = '';
                 return;
             }
-
             referralSection.classList.remove('hidden');
-
-            if (currentUserType === 'internal') {
+            const isPartnerKongressNoReferral = (currentUserType === 'partner' && !isReferralMode);
+            if (currentUserType === 'internal' || isPartnerKongressNoReferral) {
                 const currentSource = document.getElementById('utm_source').value;
                 referralInput.readOnly = true;
-                
                 if (!currentSource) {
                     referralInput.value = '';
                     referralDescription.textContent = "Select a UTM Source to generate a unique Referrer ID.";
                     return;
                 }
-
                 referralDescription.textContent = "ID is automatically generated and locked per UTM Source. Change the source to get a new ID.";
-                
                 let referrerContent;
                 if (sourceReferrerMap[currentSource]) {
-                    // Use existing ID for this source
                     referrerContent = sourceReferrerMap[currentSource];
                 } else {
-                    // Generate a new unique ID and store it
                     referrerContent = generateUniqueReferrerContent();
                     sourceReferrerMap[currentSource] = referrerContent;
                 }
-                
                 try {
-                   referralInput.value = btoa(referrerContent);
-                } catch(e) {
-                   console.error("Error encoding referrer ID", e);
-                   referralInput.value = "Error";
+                    referralInput.value = btoa(referrerContent);
+                } catch (e) {
+                    console.error("Error encoding referrer ID", e);
+                    referralInput.value = "Error";
                 }
-
             } else {
                 referralInput.readOnly = false;
+                referralInput.value = "";
                 referralDescription.textContent = "Enter the Referral-ID (e.g., an email address). It will be automatically encoded for the link.";
             }
         }
@@ -1199,7 +1164,6 @@
         function handleSpeakerChange() {
             if (currentUserType === 'kongress') {
                 const speakerName = document.getElementById('speaker_name').value;
-                
                 if (speakerName) {
                     document.getElementById('leadmagnet').value = 'Kongress';
                     document.getElementById('utm_medium').value = 'cooperation';
@@ -1218,78 +1182,63 @@
 
         function setUserType(type) {
             currentUserType = type;
-            
             document.getElementById('internal-btn').classList.toggle('active', type === 'internal');
             document.getElementById('partner-btn').classList.toggle('active', type === 'partner');
             document.getElementById('kongress-btn').classList.toggle('active', type === 'kongress');
-            
             const agentSection = document.getElementById('agent-section');
             const sourceAddContainer = document.getElementById('source-add-container');
             const leadmagnetAddContainer = document.getElementById('leadmagnet-add-container');
             const referralToggleSection = document.getElementById('referral-toggle-section');
             const kongressSection = document.getElementById('kongress-section');
-            
             const utmMedium = document.getElementById('utm_medium');
             const utmSource = document.getElementById('utm_source');
             const utmCampaign = document.getElementById('utm_campaign');
             const leadmagnet = document.getElementById('leadmagnet');
-            
             const mediumNotice = document.getElementById('medium-locked-notice');
             const sourceNotice = document.getElementById('source-locked-notice');
             const campaignNotice = document.getElementById('campaign-locked-notice');
             const leadmagnetNotice = document.getElementById('leadmagnet-locked-notice');
-            
             isReferralMode = false;
             isKongressMode = false;
             document.getElementById('referral-toggle').checked = false;
             document.getElementById('referral-section').classList.add('hidden');
-            
             if (type === 'internal') {
                 agentSection.classList.remove('hidden');
                 sourceAddContainer.classList.remove('hidden');
                 leadmagnetAddContainer.classList.remove('hidden');
                 referralToggleSection.classList.add('hidden');
                 kongressSection.classList.add('hidden');
-                
                 utmMedium.disabled = false;
                 utmSource.disabled = false;
                 utmCampaign.disabled = false;
                 leadmagnet.disabled = false;
-                
                 utmMedium.classList.remove('utm-field-locked');
                 utmSource.classList.remove('utm-field-locked');
                 utmCampaign.classList.remove('utm-field-locked');
                 leadmagnet.classList.remove('utm-field-locked');
-                
                 mediumNotice.classList.add('hidden');
                 sourceNotice.classList.add('hidden');
                 campaignNotice.classList.add('hidden');
                 leadmagnetNotice.classList.add('hidden');
-                
             } else if (type === 'partner') {
                 agentSection.classList.add('hidden');
                 sourceAddContainer.classList.add('hidden');
                 leadmagnetAddContainer.classList.remove('hidden');
                 referralToggleSection.classList.remove('hidden');
                 kongressSection.classList.add('hidden');
-                
                 utmCampaign.disabled = true;
                 utmCampaign.classList.add('utm-field-locked');
                 campaignNotice.classList.remove('hidden');
                 campaignNotice.textContent = '🔒 Auto-generated for cooperation partners';
-                
                 utmMedium.disabled = false;
                 utmSource.disabled = false;
                 leadmagnet.disabled = false;
-                
                 utmMedium.classList.remove('utm-field-locked');
                 utmSource.classList.remove('utm-field-locked');
                 leadmagnet.classList.remove('utm-field-locked');
-                
                 mediumNotice.classList.add('hidden');
                 sourceNotice.classList.add('hidden');
                 leadmagnetNotice.classList.add('hidden');
-                
             } else if (type === 'kongress') {
                 isKongressMode = true;
                 agentSection.classList.add('hidden');
@@ -1297,27 +1246,22 @@
                 leadmagnetAddContainer.classList.add('hidden');
                 referralToggleSection.classList.add('hidden');
                 kongressSection.classList.remove('hidden');
-                
                 utmMedium.disabled = true;
                 utmSource.disabled = true;
                 utmCampaign.disabled = true;
                 leadmagnet.disabled = true;
-                
                 utmMedium.classList.add('utm-field-locked');
                 utmSource.classList.add('utm-field-locked');
                 utmCampaign.classList.add('utm-field-locked');
                 leadmagnet.classList.add('utm-field-locked');
-                
                 mediumNotice.classList.remove('hidden');
                 sourceNotice.classList.remove('hidden');
                 campaignNotice.classList.remove('hidden');
                 leadmagnetNotice.classList.remove('hidden');
-                
                 utmMedium.value = 'cooperation';
                 utmCampaign.value = 'InvestmentKongress25_Speaker';
                 leadmagnet.value = 'Kongress';
             }
-            
             updateKongressReferralField();
             createNewLink();
         }
@@ -1326,78 +1270,61 @@
             const toggle = document.getElementById('referral-toggle');
             const referralSection = document.getElementById('referral-section');
             const paidContainer = document.getElementById('paid-options-container');
-            
             const utmMedium = document.getElementById('utm_medium');
             const utmSource = document.getElementById('utm_source');
             const utmCampaign = document.getElementById('utm_campaign');
-            
             const mediumNotice = document.getElementById('medium-locked-notice');
             const sourceNotice = document.getElementById('source-locked-notice');
             const campaignNotice = document.getElementById('campaign-locked-notice');
-            
             isReferralMode = toggle.checked;
-            
             if (isReferralMode) {
                 referralSection.classList.remove('hidden');
                 paidContainer.style.display = 'none';
-                
                 utmMedium.disabled = true;
                 utmSource.disabled = true;
                 utmCampaign.disabled = true;
-                
                 utmMedium.classList.add('utm-field-locked');
                 utmSource.classList.add('utm-field-locked');
                 utmCampaign.classList.add('utm-field-locked');
-                
                 mediumNotice.classList.remove('hidden');
                 sourceNotice.classList.remove('hidden');
                 campaignNotice.classList.remove('hidden');
                 campaignNotice.textContent = '🔒 Locked in referral mode - automatically set to "leadmagnet_referralprogram"';
-                
                 utmMedium.value = 'cooperation';
                 updateSourceOptions();
-                updateReferralCampaign(); 
-                
+                updateReferralCampaign();
             } else {
                 referralSection.classList.add('hidden');
-                
                 document.getElementById('referral_id').value = '';
                 document.getElementById('partner_name').value = '';
                 document.getElementById('partner-name-group').style.display = 'none';
-
                 if (currentUserType === 'partner') {
                     utmMedium.disabled = false;
                     utmSource.disabled = false;
-                    
                     utmMedium.classList.remove('utm-field-locked');
                     utmSource.classList.remove('utm-field-locked');
-                    
                     mediumNotice.classList.add('hidden');
                     sourceNotice.classList.add('hidden');
                     campaignNotice.textContent = '🔒 Auto-generated for cooperation partners';
-                    
                 } else {
                     utmMedium.disabled = false;
                     utmSource.disabled = false;
                     utmCampaign.disabled = false;
-                    
                     utmMedium.classList.remove('utm-field-locked');
                     utmSource.classList.remove('utm-field-locked');
                     utmCampaign.classList.remove('utm-field-locked');
-                    
                     mediumNotice.classList.add('hidden');
                     sourceNotice.classList.add('hidden');
                     campaignNotice.classList.add('hidden');
                 }
-                
                 utmMedium.value = currentUserType === 'partner' ? 'cooperation' : 'organic';
                 handleMediumChange();
             }
+            updateKongressReferralField();
         }
 
         function handleReferralId() {
             if (!isReferralMode) return;
-
             const referralId = document.getElementById('referral_id').value.trim();
             const partnerNameInput = document.getElementById('partner_name');
             const partnerNameGroup = document.getElementById('partner-name-group');
@@ -1405,34 +1332,26 @@
             const utmCampaign = document.getElementById('utm_campaign');
             const statusDiv = document.getElementById('status');
             const referralIdError = document.getElementById('referral-id-error');
-
             if (referralId) {
                 statusDiv.textContent = 'Verifying Referral ID...';
                 statusDiv.style.color = 'gray';
                 referralIdError.style.display = 'none';
-
                 const referralDatabaseUrl = 'https://script.google.com/macros/s/AKfycbwM1LtNIHHGzYc2i6HseeeZpoanhCEIYWAYtJU0s8hZVlsApXO6gCUQgG6qAulGvBDepQ/exec';
                 const fetchUrl = `${referralDatabaseUrl}?referral_id=${referralId}&v=${new Date().getTime()}`;
-
                 fetch(fetchUrl)
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
                             const partnerName = data.name;
-                            partnerNameInput.value = partnerName; 
-                            partnerNameGroup.style.display = 'block'; 
-
+                            partnerNameInput.value = partnerName;
+                            partnerNameGroup.style.display = 'block';
                             const customSource = `${partnerName}_${referralId}`;
-
                             if (!utmSourceOptions.cooperation.includes(customSource)) {
                                 utmSourceOptions.cooperation.push(customSource);
                             }
-
                             updateSourceOptions();
                             utmSource.value = customSource;
-
                             updateReferralCampaign();
-
                             statusDiv.textContent = `✓ Referral tracking configured for: ${partnerName}`;
                             statusDiv.style.color = 'green';
                             setTimeout(() => {
@@ -1441,25 +1360,25 @@
                         } else {
                             referralIdError.textContent = 'Referral ID doesnt exist';
                             referralIdError.style.display = 'block';
-                            statusDiv.textContent = ''; 
-                            partnerNameInput.value = ''; 
-                            partnerNameGroup.style.display = 'none'; 
-                            updateSourceOptions(); 
-                            utmCampaign.value = ''; 
+                            statusDiv.textContent = '';
+                            partnerNameInput.value = '';
+                            partnerNameGroup.style.display = 'none';
+                            updateSourceOptions();
+                            utmCampaign.value = '';
                         }
                     })
                     .catch(error => {
                         console.error('Error validating referral ID:', error);
                         referralIdError.textContent = 'Error validating Referral ID. Please try again.';
                         referralIdError.style.display = 'block';
-                        statusDiv.textContent = ''; 
+                        statusDiv.textContent = '';
                     });
             } else {
                 partnerNameInput.value = '';
                 partnerNameGroup.style.display = 'none';
                 updateSourceOptions();
                 utmCampaign.value = '';
-                referralIdError.style.display = 'none'; 
+                referralIdError.style.display = 'none';
             }
         }
 
@@ -1469,12 +1388,10 @@
             const selectedMedium = mediumDropdown.value;
             const currentSourceValue = sourceDropdown.value;
             sourceDropdown.innerHTML = '';
-            
             const emptyOption = document.createElement('option');
             emptyOption.value = '';
             emptyOption.textContent = '-- Select Source --';
             sourceDropdown.appendChild(emptyOption);
-            
             const options = Array.from(new Set(utmSourceOptions[selectedMedium] || []));
             options.forEach(optionValue => {
                 const option = document.createElement('option');
@@ -1491,22 +1408,18 @@
             const newSource = newSourceInput.value.replace(/\s/g, '');
             const selectedMedium = document.getElementById('utm_medium').value;
             const successDiv = document.getElementById('source-success');
-            
             if (!newSource) {
                 alert('Please enter a source name');
                 return;
             }
-            
             if (utmSourceOptions[selectedMedium].includes(newSource)) {
                 alert('This source already exists for the selected medium');
                 return;
             }
-            
             utmSourceOptions[selectedMedium].push(newSource);
             updateSourceOptions();
             document.getElementById('utm_source').value = newSource;
             newSourceInput.value = '';
-            
             successDiv.textContent = `✓ "${newSource}" added successfully!`;
             successDiv.style.display = 'block';
             setTimeout(() => {
@@ -1520,25 +1433,21 @@
             const newOption = newOptionInput.value.replace(/\s/g, '');
             const selectElement = document.getElementById(selectId);
             const successDiv = document.getElementById(`${selectId}-success`);
-            
             if (!newOption) {
                 alert('Please enter a value');
                 return;
             }
-            
             const existingOptions = Array.from(selectElement.options).map(opt => opt.value);
             if (existingOptions.includes(newOption)) {
                 alert('This option already exists');
                 return;
             }
-            
             const option = document.createElement('option');
             option.value = newOption;
             option.textContent = newOption;
             selectElement.appendChild(option);
             selectElement.value = newOption;
             newOptionInput.value = '';
-            
             successDiv.textContent = `✓ "${newOption}" added successfully!`;
             successDiv.style.display = 'block';
             setTimeout(() => {
@@ -1551,7 +1460,7 @@
             const paidContainer = document.getElementById('paid-options-container');
             const campaignInput = document.getElementById('utm_campaign');
             paidContainer.style.display = (medium === 'paid') ? 'block' : 'none';
-            campaignInput.readOnly = (medium === 'paid'); 
+            campaignInput.readOnly = (medium === 'paid');
             if (medium === 'paid') {
                 campaignInput.value = '';
             } else {
@@ -1567,7 +1476,6 @@
             const utmSource = document.getElementById('utm_source').value;
             const today = new Date();
             const dateString = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
-
             let agentName = '';
             let utmCampaign = '';
 
@@ -1598,9 +1506,7 @@
                     utmCampaign = `${leadmagnet}_${dateString}`;
                 }
             }
-            
             document.getElementById('utm_campaign').value = utmCampaign;
-            
             let currentURL = '';
             const param1Name = 'utm_source';
             const param1Value = utmSource;
@@ -1611,40 +1517,37 @@
             const additionalPathE3 = agentName;
             const additionalPathK3 = leadmagnet;
             const additionalPathL3 = dateString;
-
-            // --- RESTORED: Full, detailed URL generation logic ---
+            
+            // --- START: FULLY RESTORED URL LOGIC ---
             if (additionalPathK3 === "Kongress" && domain === "investmenter.de") {
                 const baseUrl = `https://immo.${domain}/${additionalPathK3}/`;
                 const params = new URLSearchParams();
-
                 const kongressReferralId = document.getElementById('kongress_referral_id').value.trim();
                 if (kongressReferralId) {
-                    // The value is already Base64 encoded by updateKongressReferralField
                     params.set('referrer', kongressReferralId);
                 }
-
                 let kongressCampaign;
                 if (currentUserType === 'kongress') {
                     kongressCampaign = 'InvestmentKongress25_Speaker';
                 } else if (currentUserType === 'partner') {
-                    kongressCampaign = 'InvestmentKongress25_ReferralProgram';
+                    if (isReferralMode) {
+                        kongressCampaign = 'Kongress_referralprogram';
+                    } else {
+                        kongressCampaign = 'InvestmentKongress25_ReferralProgram';
+                    }
                 } else {
                     kongressCampaign = 'InvestmentKongress25';
                 }
-                
                 params.set(param1Name, param1Value);
                 params.set(param2Name, param2Value);
                 params.set(param3Name, kongressCampaign);
                 params.set('one_s', param1Value);
                 params.set('one_m', param2Value);
                 params.set('one_c', kongressCampaign);
-
                 if (currentUserType === 'internal') {
                     params.set('utm_agent', additionalPathE3);
                 }
-
                 currentURL = `${baseUrl}?${params.toString()}`;
-
             } else if (domain === "corporate.investmenter.de") {
                 switch (utmMedium.toLowerCase()) {
                     case 'referral':
@@ -1771,12 +1674,13 @@
                         return null;
                 }
             }
+            // --- END: FULLY RESTORED URL LOGIC ---
 
             document.getElementById('original_link').value = currentURL;
             document.getElementById('short_link').value = "(Click 'Generate & Save Link' to create short link)";
             
-            let saveData = { 
-                domain, leadmagnet, utmMedium, utmSource, utmCampaign, agentName, 
+            let saveData = {
+                domain, leadmagnet, utmMedium, utmSource, utmCampaign, agentName,
                 generatedLink: currentURL, userType: currentUserType,
                 isReferralMode: isReferralMode, isKongressMode: isKongressMode
             };
@@ -1788,98 +1692,55 @@
             if (isKongressMode) {
                 saveData.speakerName = document.getElementById('speaker_name').value;
             }
-            
             return { link: currentURL, data: saveData };
         }
 
         async function generateAndSaveLink() {
             const statusDiv = document.getElementById('status');
             const result = generateLink();
-            
-            if (!result || !result.link) { 
-                statusDiv.textContent = 'Cannot generate link. Please fill all required fields.'; 
-                statusDiv.style.color = 'red'; 
-                return; 
-            }
-
-            const leadmagnet = result.data.leadmagnet;
-            const utmSource = result.data.utmSource;
-            const agentName = result.data.agentName;
-
-            if (!leadmagnet || !utmSource || !agentName) {
-                statusDiv.textContent = 'Leadmagnet, Source, and Agent Name are required.'; 
-                statusDiv.style.color = 'red'; 
+            if (!result || !result.link) {
+                statusDiv.textContent = 'Cannot generate link. Please fill all required fields.';
+                statusDiv.style.color = 'red';
                 return;
             }
-
+            const { leadmagnet, utmSource, agentName } = result.data;
+            if (!leadmagnet || !utmSource || (currentUserType === 'internal' && !agentName)) {
+                statusDiv.textContent = 'Leadmagnet, Source, and Agent Name are required.';
+                statusDiv.style.color = 'red';
+                return;
+            }
             const now = new Date();
             const timestamp = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-            
             const linkTitle = `1. Leadmagnet: ${leadmagnet} / 1. UTM Source: ${utmSource} / 1. Agent Name: ${agentName} / 1. Timestamp: ${timestamp}`;
             const linkPath = `${leadmagnet}/${utmSource}`;
-            
             statusDiv.innerHTML = 'Creating short link... <span class="loading"></span>';
             statusDiv.style.color = 'gray';
-            
             try {
                 const shortLink = await createShortLink(result.link, linkTitle, linkPath);
-                
                 document.getElementById('short_link').value = shortLink;
                 result.data.shortLink = shortLink;
-                
                 statusDiv.textContent = '✓ Short link created successfully!';
                 statusDiv.style.color = 'green';
-                
-                updateDebugInfo(`Success: Short link created with path strategy`);
-                
                 if (GOOGLE_SHEETS_SAVE_URL && GOOGLE_SHEETS_SAVE_URL !== 'PASTE_YOUR_NEW_WEB_APP_URL_HERE') {
                     saveToGoogleSheets(result.data);
-                } else {
-                    console.log('Google Sheets URL not configured. Skipping save.');
                 }
-                
-                setTimeout(() => {
-                    statusDiv.textContent = '';
-                }, 3000);
-                
+                setTimeout(() => statusDiv.textContent = '', 3000);
             } catch (error) {
-                console.error('Error creating short link via API, using fallback:', error);
-                
-                updateDebugInfo(`Error details: ${error.message}`);
-                
-                const domain = document.getElementById('domain').value;
-                let fallbackShortLink = `https://immo.${domain}/${leadmagnet}/${utmSource}`;
-                if (domain === "corporate.investmenter.de" || domain === "dubai-immobilie-kaufen.de") {
-                    fallbackShortLink = "Short link not available for this domain";
-                }
-                
-                document.getElementById('short_link').value = fallbackShortLink;
-                result.data.shortLink = fallbackShortLink;
-                
-                statusDiv.innerHTML = `<div style="text-align: center; font-size: 12px;"><strong>⚠️ Custom path failed or API unavailable.</strong><br>Using fallback short link format instead.<br><small>Error: ${error.message}</small></div>`;
+                console.error('Error creating short link:', error);
+                const errorMessage = error.error || error.message || 'Unknown error';
+                statusDiv.innerHTML = `<div style="text-align: center; font-size: 12px;"><strong>⚠️ Short link creation failed.</strong><br><small>Error: ${errorMessage}</small></div>`;
                 statusDiv.style.color = 'orange';
-                
-                if (GOOGLE_SHEETS_SAVE_URL && GOOGLE_SHEETS_SAVE_URL !== 'PASTE_YOUR_NEW_WEB_APP_URL_HERE') {
-                    saveToGoogleSheets(result.data);
-                } else {
-                    console.log('Google Sheets URL not configured. Skipping save.');
-                }
-                
-                setTimeout(() => {
-                    statusDiv.textContent = '';
-                    statusDiv.style.textAlign = 'center';
-                }, 5000);
+                setTimeout(() => statusDiv.textContent = '', 5000);
             }
         }
 
         function saveToGoogleSheets(data) {
             console.log('Saving data to Google Sheets:', data);
-            
-            fetch(GOOGLE_SHEETS_SAVE_URL, { 
-                method: 'POST', 
+            fetch(GOOGLE_SHEETS_SAVE_URL, {
+                method: 'POST',
                 mode: 'cors',
                 headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify(data) 
+                body: JSON.stringify(data)
             })
             .then(response => {
                 if (!response.ok) {
@@ -1894,7 +1755,7 @@
                     console.error('Google Sheets save error:', result.message);
                 }
             })
-            .catch(error => { 
+            .catch(error => {
                 console.error('Error sending data to Google Sheets:', error);
             });
         }
@@ -1907,15 +1768,10 @@
             document.getElementById('original_link').value = '';
             document.getElementById('short_link').value = '';
             document.getElementById('status').textContent = '';
-
-            // Reset the source-to-referrer map
             sourceReferrerMap = {};
-            
-            // Hide debug info
             if (debugMode) {
                 document.getElementById('debug-info').style.display = 'none';
             }
-            
             if (currentUserType === 'internal') {
                 document.getElementById('agent_name').selectedIndex = 0;
             } else if (currentUserType === 'partner') {
@@ -1925,22 +1781,18 @@
             } else if (currentUserType === 'kongress') {
                 document.getElementById('speaker_name').selectedIndex = 0;
             }
-            
             document.getElementById('new-leadmagnet').value = '';
             if (currentUserType === 'internal') {
                 document.getElementById('new-source').value = '';
                 document.getElementById('new-agent').value = '';
             }
-            
             document.getElementById('leadmagnet-success').style.display = 'none';
             document.getElementById('source-success').style.display = 'none';
             if (currentUserType === 'internal') {
                 document.getElementById('agent_name-success').style.display = 'none';
             }
-            
             const sourceDropdown = document.getElementById('utm_source');
             sourceDropdown.innerHTML = '<option value="">-- Select Source --</option>';
-            
             handleMediumChange();
             updateKongressReferralField();
         }
@@ -1948,19 +1800,15 @@
         document.getElementById('new-leadmagnet').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addNewOption('leadmagnet', 'new-leadmagnet');
         });
-
         document.getElementById('new-source').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addNewSource();
         });
-
         document.getElementById('new-agent').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addNewOption('agent_name', 'new-agent');
         });
-
         document.getElementById('referral_id').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') handleReferralId();
         });
-
         document.getElementById('referral_id').addEventListener('input', function() {
             setTimeout(handleReferralId, 100);
         });
@@ -1975,8 +1823,7 @@
                         const leadmagnet = document.getElementById('leadmagnet').value;
                         const utmMedium = document.getElementById('utm_medium').value;
                         const utmSource = document.getElementById('utm_source').value;
-                        
-                        if (domain && leadmagnet && utmMedium && utmSource) {
+                        if (domain && leadmagnet && utmMedium && (utmSource || isReferralMode)) {
                             generateLink();
                         }
                     });
@@ -1984,7 +1831,6 @@
             });
         }
 
-        // Enable debug mode with keyboard shortcut (Ctrl+D)
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey && e.key === 'd') {
                 e.preventDefault();
