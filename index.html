@@ -503,6 +503,29 @@
             letter-spacing: 1px;
         }
 
+        .email-lookup-section {
+            background: rgba(212, 165, 116, 0.1);
+            border: 2px solid rgba(212, 165, 116, 0.3);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+            position: relative;
+            animation: fadeInUp 0.8s ease-out 0.35s both;
+        }
+
+        .email-lookup-section::before {
+            content: 'EMAIL LOOKUP & REFERRAL ID GENERATION';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: var(--glass-bg);
+            padding: 0 15px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-color);
+            letter-spacing: 1px;
+        }
+
         .utm-field-locked {
             background: rgba(200, 200, 200, 0.3) !important;
             cursor: not-allowed !important;
@@ -629,6 +652,17 @@
             background: rgba(212, 165, 116, 0.1);
             border-radius: 6px;
             border-left: 3px solid var(--accent-color);
+        }
+
+        .error-message {
+            color: red;
+            font-size: 12px;
+            margin-top: 8px;
+            font-weight: 600;
+            padding: 8px 12px;
+            background: rgba(255, 0, 0, 0.1);
+            border-radius: 6px;
+            border-left: 3px solid red;
         }
 
         .loading-indicator {
@@ -774,7 +808,7 @@
         <div class="referral-section hidden" id="referral-section">
             <div class="form-group">
                 <label for="referral_id">REFERRAL ID</label>
-                <span class="field-description">Enter your unique referral ID. This will automatically set your UTM parameters.</span>
+                <span class="field-description" id="referral-id-description">Enter your unique referral ID. This will automatically set your UTM parameters.</span>
                 <input type="text" id="referral_id" placeholder="Enter your referral ID (e.g., ABC123)">
                 <div id="referral-id-error" style="color: red; margin-top: 5px; display: none;"></div>
             </div>
@@ -785,11 +819,34 @@
                 <input type="text" id="partner_name" placeholder="Partner name" readonly>
             </div>
             
-            <div class="referral-info">
+            <div class="referral-info" id="partner-referral-info">
                 <strong>Referral Mode Active:</strong> UTM parameters are automatically configured as:<br>
-                • UTM Source: YourName_ReferralID<br>
-                • UTM Medium: cooperation<br>
-                • UTM Campaign: leadmagnet_referralprogram
+                &bull; UTM Source: YourName_ReferralID<br>
+                &bull; UTM Medium: cooperation<br>
+                &bull; UTM Campaign: leadmagnet_referralprogram
+            </div>
+
+            <div class="referral-info" id="internal-referral-info" style="display: none;">
+                <strong>Internal Referral Mode Active:</strong> UTM parameters are automatically configured as:<br>
+                &bull; UTM Medium: referral<br>
+                &bull; UTM Source: [Your selected source name]<br>
+                &bull; UTM Campaign: Kongress2025<br>
+                <small>The Referral ID will be added to the link as a <code>utm_content</code> parameter.</small>
+            </div>
+        </div>
+
+        <div class="email-lookup-section hidden" id="email-lookup-section">
+            <div class="form-group">
+                <label for="source_email">SOURCE EMAIL ADDRESS</label>
+                <span class="field-description">Enter the email address to look up existing referral ID or create a new one.</span>
+                <input type="email" id="source_email" placeholder="Enter email address">
+                <div id="email-lookup-status" style="margin-top: 8px; font-size: 12px;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="auto_referral_id">GENERATED REFERRAL ID</label>
+                <span class="field-description">This will be automatically generated or retrieved from the database.</span>
+                <input type="text" id="auto_referral_id" placeholder="Referral ID will appear here" readonly>
             </div>
         </div>
 
@@ -814,10 +871,10 @@
             
             <div class="kongress-info">
                 <strong>Kongress 2025 Speaker Mode Active:</strong> UTM parameters are automatically configured as:<br>
-                • Lead Magnet: Kongress<br>
-                • UTM Medium: cooperation<br>
-                • UTM Source: [Selected Speaker Name]<br>
-                • UTM Campaign: InvestmentKongress25_Speaker
+                &bull; Lead Magnet: Kongress<br>
+                &bull; UTM Medium: cooperation<br>
+                &bull; UTM Source: [Selected Speaker Name]<br>
+                &bull; UTM Campaign: InvestmentKongress25_Speaker
             </div>
         </div>
 
@@ -994,6 +1051,7 @@
 
     <script>
         const GOOGLE_SHEETS_SAVE_URL = 'https://script.google.com/macros/s/AKfycbziPv-IOjPaTA0pecV3AvLrx9DGaNvawmijspX-3QcmVeyHtVeJnpS2bqU8oG88MS90/exec';
+        const REFERRAL_DATABASE_URL = 'https://script.google.com/macros/s/AKfycbzie5h27LFXefS4EwfdP7Y1o5F7WyK_o9kFDvqHzbaa9ZSpuaq8Z2mzHONEkvIpT8E4iw/exec';
         
         const SHORT_IO_API_KEY = 'pk_vuCArao5hzCTbsGp';
         const SHORT_IO_DOMAIN = 'immo.investmenter.de';
@@ -1004,6 +1062,20 @@
         let debugMode = false; 
         
         let sourceReferrerMap = {};
+        let existingShortLinks = new Map(); // Cache for existing short links
+
+        // Predefined referral IDs for specific sources
+        const predefinedReferralIds = {
+            'AnnaHerbst': 'YS5oZXJic3RA',
+            'JenniferSteinbeisser': 'ai5zdGVpbmJl',
+            'FelixHeindoerfer': 'Zi5oZWluZG9l',
+            'MarkusJoerig': 'bS5qb2VyaWdA',
+            'MaehdiNasef': 'bS5uYXNlZkBp',
+            'JimMenter': 'amltQGludmVz',
+            'LisaHeimsch': 'bC5oZWltc2No',
+            'KianoLoehr': 'a2lhbm9AaW52',
+            'ThorstenVanRiet': 'dC52YW5yaWV0'
+        };
 
         let utmSourceOptions = {
             paid: ['meta', 'google', 'linkedin', 'taboola', 'spotify'],
@@ -1027,21 +1099,55 @@
             return result.substring(0, 50);
         }
 
-        // --- START: MODIFIED createShortLink FUNCTION ---
+        // Check if short link path already exists
+        async function checkExistingShortLink(path) {
+            const sanitizedPath = sanitizePath(path);
+            
+            // Check cache first
+            if (existingShortLinks.has(sanitizedPath)) {
+                return existingShortLinks.get(sanitizedPath);
+            }
+
+            try {
+                // Use Short.io API to check if link exists
+                const SHORT_IO_API_URL = 'https://api.short.io/links/public';
+                const checkUrl = `https://${SHORT_IO_DOMAIN}/${sanitizedPath}`;
+                
+                const response = await fetch(SHORT_IO_API_URL, {
+                    method: 'GET',
+                    headers: {
+                        'authorization': SHORT_IO_API_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                // If we get a 200 response, check if our domain/path exists in the response
+                if (response.ok) {
+                    const data = await response.json();
+                    // This would need to be implemented based on Short.io's actual API response
+                    // For now, we'll assume the link doesn't exist and let the creation handle duplicates
+                }
+                
+                return null; // Assume doesn't exist, let create handle conflicts
+            } catch (error) {
+                // If there's an error checking, assume it doesn't exist
+                return null;
+            }
+        }
+
         async function createShortLink(longUrl, title, path) {
             const SHORT_IO_API_URL = 'https://api.short.io/links/public';
             const baseSanitizedPath = sanitizePath(path);
             let lastError = null;
-            const MAX_ATTEMPTS = 10; // Try the original path + 9 variations with -1, -2, etc.
+            const MAX_ATTEMPTS = 10;
 
+            // Don't check for existing links - just try to create and handle conflicts
             for (let i = 0; i < MAX_ATTEMPTS; i++) {
-                // On first attempt (i=0), use the original path. On subsequent attempts, append a number.
                 const currentPath = (i === 0) ? baseSanitizedPath : `${baseSanitizedPath}-${i}`;
                 
-                // If the sanitizing process resulted in an empty path, we cannot proceed.
                 if (!currentPath) {
                     lastError = new Error("Generated path is empty. Please select a lead magnet and source.");
-                    break; // Exit the loop to throw the error.
+                    break; 
                 }
 
                 try {
@@ -1068,36 +1174,38 @@
                     if (response.ok) {
                         const data = await response.json();
                         if (debugMode) console.log(`Success with path "${currentPath}":`, data);
-                        return data.shortURL; // Success! Return the URL and exit the function.
+                        
+                        // Cache the new short link
+                        existingShortLinks.set(currentPath, data.shortURL);
+                        return data.shortURL;
                     }
 
-                    // If response is not OK, handle the error.
                     const errorData = await response.json();
                     lastError = errorData;
                     
-                    // Check if the error is specifically that the path already exists.
                     if (response.status === 409 || (errorData.error && errorData.error.toLowerCase().includes('path already exists'))) {
-                        if (debugMode) console.log(`Path "${currentPath}" is already taken. Trying next variation.`);
-                        // If so, continue the loop to try the next path variation (e.g., path-1, path-2).
+                        if (debugMode) console.log(`Path "${currentPath}" already exists. Trying next variation.`);
                         continue; 
                     } else {
-                        // For any other kind of error, stop trying immediately.
                         throw new Error(`API error ${response.status}: ${errorData.error || 'Unknown error'}`);
                     }
 
                 } catch (error) {
                     lastError = error;
                     if (debugMode) console.log(`Exception during attempt ${i+1}:`, error);
-                    // An exception occurred (e.g., network error, or the "throw" from above), so we break the loop.
-                    break;
+                    
+                    // If it's a network error, try next variation
+                    if (error.name === 'TypeError' || error.message.includes('fetch')) {
+                        continue;
+                    } else {
+                        break;
+                    }
                 }
             }
 
-            // If the loop completes without returning a URL, it means all attempts failed.
-            console.error("All attempts to create a unique short link path failed.", lastError);
-            throw lastError || new Error(`Could not create a unique short link for path '${baseSanitizedPath}' after ${MAX_ATTEMPTS} attempts.`);
+            console.error("All attempts to create a short link failed.", lastError);
+            throw lastError || new Error(`Could not create a short link for path '${baseSanitizedPath}' after ${MAX_ATTEMPTS} attempts.`);
         }
-        // --- END: MODIFIED createShortLink FUNCTION ---
 
         function updateDebugInfo(info) {
             if (debugMode) {
@@ -1109,7 +1217,7 @@
         }
         
         function updateReferralCampaign() {
-            if (isReferralMode) {
+            if (isReferralMode && currentUserType === 'partner') {
                 const leadmagnet = document.getElementById('leadmagnet').value;
                 const utmCampaign = document.getElementById('utm_campaign');
                 utmCampaign.value = `${leadmagnet}_referralprogram`;
@@ -1126,16 +1234,64 @@
                 document.getElementById('kongress_referral_id').value = '';
                 return;
             }
+
             const leadmagnet = document.getElementById('leadmagnet').value;
             const referralSection = document.getElementById('kongress-referral-section');
             const referralInput = document.getElementById('kongress_referral_id');
             const referralDescription = document.getElementById('kongress-referral-description');
+            const emailLookupSection = document.getElementById('email-lookup-section');
+
             if (leadmagnet !== 'Kongress') {
                 referralSection.classList.add('hidden');
+                emailLookupSection.classList.add('hidden');
                 referralInput.value = '';
+                document.getElementById('auto_referral_id').value = '';
+                document.getElementById('source_email').value = '';
+                document.getElementById('email-lookup-status').innerHTML = '';
                 return;
             }
+
+            // Show email lookup section for internal users when Kongress is selected and referral mode is off
+            if (currentUserType === 'internal' && !isReferralMode) {
+                const currentSource = document.getElementById('utm_source').value;
+                
+                // Check if source has predefined referral ID
+                if (predefinedReferralIds[currentSource]) {
+                    emailLookupSection.classList.add('hidden');
+                    referralSection.classList.remove('hidden');
+                    referralInput.readOnly = true;
+                    referralInput.value = predefinedReferralIds[currentSource];
+                    referralDescription.textContent = `Predefined referral ID for ${currentSource}`;
+                    
+                    // Clear email lookup fields
+                    document.getElementById('auto_referral_id').value = '';
+                    document.getElementById('source_email').value = '';
+                    document.getElementById('email-lookup-status').innerHTML = '';
+                    
+                    // Regenerate link with predefined referral ID
+                    if (shouldRegenerateLink()) {
+                        generateLink();
+                    }
+                } else if (currentSource && !predefinedReferralIds[currentSource]) {
+                    // Show email lookup for non-predefined sources
+                    emailLookupSection.classList.remove('hidden');
+                    referralSection.classList.add('hidden');
+                    referralInput.value = '';
+                } else {
+                    // No source selected
+                    emailLookupSection.classList.add('hidden');
+                    referralSection.classList.add('hidden');
+                    referralInput.value = '';
+                    document.getElementById('auto_referral_id').value = '';
+                    document.getElementById('source_email').value = '';
+                    document.getElementById('email-lookup-status').innerHTML = '';
+                }
+                return;
+            }
+
             referralSection.classList.remove('hidden');
+            emailLookupSection.classList.add('hidden');
+
             const isPartnerKongressNoReferral = (currentUserType === 'partner' && !isReferralMode);
             if (currentUserType === 'internal' || isPartnerKongressNoReferral) {
                 const currentSource = document.getElementById('utm_source').value;
@@ -1159,10 +1315,213 @@
                     console.error("Error encoding referrer ID", e);
                     referralInput.value = "Error";
                 }
+                
+                // Regenerate link with new referrer content
+                if (shouldRegenerateLink()) {
+                    generateLink();
+                }
             } else {
                 referralInput.readOnly = false;
                 referralInput.value = "";
                 referralDescription.textContent = "Enter the Referral-ID (e.g., an email address). It will be automatically encoded for the link.";
+            }
+        }
+
+        // Generate 12-character alphanumeric referral ID
+        function generateReferralId() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < 12; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Enhanced debug function to test email lookup
+        window.testEmailLookup = async function(email) {
+            console.log('=== FRONTEND EMAIL LOOKUP TEST ===');
+            console.log('Email to test:', email);
+            console.log('Email length:', email.length);
+            
+            try {
+                const checkUrl = `${REFERRAL_DATABASE_URL}?action=check_email&email=${encodeURIComponent(email)}&v=${new Date().getTime()}`;
+                console.log('Request URL:', checkUrl);
+                
+                const response = await fetch(checkUrl);
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                const data = await response.json();
+                console.log('Response data:', JSON.stringify(data, null, 2));
+                
+                return data;
+            } catch (error) {
+                console.error('Test error:', error);
+                return { error: error.message };
+            }
+        };
+
+        async function handleEmailLookup() {
+            const email = document.getElementById('source_email').value.trim();
+            const statusDiv = document.getElementById('email-lookup-status');
+            const referralIdInput = document.getElementById('auto_referral_id');
+            const kongressReferralInput = document.getElementById('kongress_referral_id');
+
+            if (!email) {
+                statusDiv.textContent = '';
+                referralIdInput.value = '';
+                kongressReferralInput.value = '';
+                // Regenerate link without referral ID
+                if (shouldRegenerateLink()) {
+                    generateLink();
+                }
+                return;
+            }
+
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                statusDiv.innerHTML = '<span class="error-message">Please enter a valid email address</span>';
+                referralIdInput.value = '';
+                kongressReferralInput.value = '';
+                return;
+            }
+
+            console.log('=== STARTING EMAIL LOOKUP ===');
+            console.log('Email:', email, 'Length:', email.length);
+            statusDiv.innerHTML = '<span style="color: gray;">🔍 Looking up email in database...</span>';
+
+            try {
+                // Check existing database first
+                const checkUrl = `${REFERRAL_DATABASE_URL}?action=check_email&email=${encodeURIComponent(email)}&v=${new Date().getTime()}`;
+                console.log('Making request to:', checkUrl);
+                
+                const checkResponse = await fetch(checkUrl);
+                console.log('Response status:', checkResponse.status);
+                
+                if (!checkResponse.ok) {
+                    throw new Error(`HTTP error! status: ${checkResponse.status}`);
+                }
+                
+                const checkData = await checkResponse.json();
+                console.log('Email lookup response:', JSON.stringify(checkData, null, 2));
+
+                if (checkData.status === 'success' && checkData.referral_id) {
+                    // Email exists in database - use existing referral ID
+                    console.log('✅ EMAIL FOUND - Using existing referral ID:', checkData.referral_id);
+                    
+                    referralIdInput.value = checkData.referral_id;
+                    kongressReferralInput.value = checkData.referral_id;
+                    statusDiv.innerHTML = '<span class="success-message">✅ Found existing email - using referral ID: ' + checkData.referral_id + '</span>';
+                    
+                    // Show kongress referral section
+                    document.getElementById('kongress-referral-section').classList.remove('hidden');
+                    document.getElementById('kongress_referral_id').readOnly = true;
+                    
+                    // Regenerate the link with the existing referral ID
+                    if (shouldRegenerateLink()) {
+                        generateLink();
+                    }
+                    return; // IMPORTANT: Stop here, don't create new entry
+                } else {
+                    // Email doesn't exist in database - create new entry
+                    console.log('❌ EMAIL NOT FOUND - Will create new entry');
+                    console.log('Response was:', checkData);
+                    
+                    statusDiv.innerHTML = '<span style="color: orange;">📝 Email not found in database - generating new referral ID...</span>';
+                    
+                    const newReferralId = generateReferralId();
+                    console.log('Generated new referral ID:', newReferralId);
+                    
+                    referralIdInput.value = newReferralId;
+                    kongressReferralInput.value = newReferralId;
+                    
+                    // Save to database
+                    const saveResult = await saveNewEmailToDatabase(email, newReferralId);
+                    
+                    if (saveResult.success) {
+                        statusDiv.innerHTML = '<span class="success-message">✅ New referral ID generated and saved: ' + newReferralId + '</span>';
+                        console.log('✅ Successfully saved new email to database');
+                    } else {
+                        statusDiv.innerHTML = '<span class="error-message">⚠️ Referral ID generated but database save failed: ' + saveResult.error + '</span>';
+                        console.error('❌ Database save failed:', saveResult.error);
+                    }
+                    
+                    // Show kongress referral section
+                    document.getElementById('kongress-referral-section').classList.remove('hidden');
+                    document.getElementById('kongress_referral_id').readOnly = true;
+                    
+                    // Regenerate the link with the new referral ID
+                    if (shouldRegenerateLink()) {
+                        generateLink();
+                    }
+                }
+            } catch (error) {
+                console.error('❌ ERROR in email lookup:', error);
+                statusDiv.innerHTML = '<span class="error-message">⚠️ Error looking up email: ' + error.message + '</span>';
+                referralIdInput.value = '';
+                kongressReferralInput.value = '';
+            }
+        }
+
+        function shouldRegenerateLink() {
+            const domain = document.getElementById('domain').value;
+            const leadmagnet = document.getElementById('leadmagnet').value;
+            const utmMedium = document.getElementById('utm_medium').value;
+            const utmSource = document.getElementById('utm_source').value;
+            return domain && leadmagnet && utmMedium && utmSource;
+        }
+
+        async function saveNewEmailToDatabase(email, referralId) {
+            const currentSource = document.getElementById('utm_source').value;
+            const utmMedium = document.getElementById('utm_medium').value;
+            const utmCampaign = document.getElementById('utm_campaign').value;
+            const now = new Date();
+            const timestamp = now.toLocaleString();
+
+            const saveData = {
+                action: 'add_new',
+                timestamp: timestamp,
+                name: currentSource,
+                email: email, // Full email address
+                utm_source: currentSource,
+                utm_medium: utmMedium,
+                utm_campaign: utmCampaign,
+                referral_id: referralId
+            };
+
+            try {
+                console.log('=== SAVING TO DATABASE ===');
+                console.log('Data to save:', JSON.stringify(saveData, null, 2));
+                
+                const response = await fetch(REFERRAL_DATABASE_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                    },
+                    body: JSON.stringify(saveData)
+                });
+
+                console.log('Save response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Database save response:', JSON.stringify(result, null, 2));
+                
+                if (result.status === 'success') {
+                    return { success: true };
+                } else if (result.message && result.message.includes('already exists')) {
+                    // Email already exists - this shouldn't happen if our lookup worked correctly
+                    console.log('⚠️ Email already exists in database');
+                    return { success: false, error: 'Email already exists in database', existing_id: result.existing_referral_id };
+                } else {
+                    return { success: false, error: result.message || 'Unknown error from database' };
+                }
+            } catch (error) {
+                console.error('❌ Error saving to database:', error);
+                return { success: false, error: error.message };
             }
         }
         
@@ -1195,11 +1554,13 @@
             document.getElementById('internal-btn').classList.toggle('active', type === 'internal');
             document.getElementById('partner-btn').classList.toggle('active', type === 'partner');
             document.getElementById('kongress-btn').classList.toggle('active', type === 'kongress');
+
             const agentSection = document.getElementById('agent-section');
             const sourceAddContainer = document.getElementById('source-add-container');
             const leadmagnetAddContainer = document.getElementById('leadmagnet-add-container');
             const referralToggleSection = document.getElementById('referral-toggle-section');
             const kongressSection = document.getElementById('kongress-section');
+            const emailLookupSection = document.getElementById('email-lookup-section');
             const utmMedium = document.getElementById('utm_medium');
             const utmSource = document.getElementById('utm_source');
             const utmCampaign = document.getElementById('utm_campaign');
@@ -1208,70 +1569,56 @@
             const sourceNotice = document.getElementById('source-locked-notice');
             const campaignNotice = document.getElementById('campaign-locked-notice');
             const leadmagnetNotice = document.getElementById('leadmagnet-locked-notice');
+
+            // Reset modes and UI
             isReferralMode = false;
             isKongressMode = false;
             document.getElementById('referral-toggle').checked = false;
             document.getElementById('referral-section').classList.add('hidden');
+            
+            // Disable all special sections by default
+            agentSection.classList.add('hidden');
+            sourceAddContainer.classList.add('hidden');
+            referralToggleSection.classList.add('hidden');
+            kongressSection.classList.add('hidden');
+            emailLookupSection.classList.add('hidden');
+
+            // Unlock all fields by default
+            [utmMedium, utmSource, utmCampaign, leadmagnet].forEach(el => {
+                el.disabled = false;
+                el.classList.remove('utm-field-locked');
+            });
+            [mediumNotice, sourceNotice, campaignNotice, leadmagnetNotice].forEach(el => el.classList.add('hidden'));
+
             if (type === 'internal') {
                 agentSection.classList.remove('hidden');
                 sourceAddContainer.classList.remove('hidden');
                 leadmagnetAddContainer.classList.remove('hidden');
-                referralToggleSection.classList.add('hidden');
-                kongressSection.classList.add('hidden');
-                utmMedium.disabled = false;
-                utmSource.disabled = false;
-                utmCampaign.disabled = false;
-                leadmagnet.disabled = false;
-                utmMedium.classList.remove('utm-field-locked');
-                utmSource.classList.remove('utm-field-locked');
-                utmCampaign.classList.remove('utm-field-locked');
-                leadmagnet.classList.remove('utm-field-locked');
-                mediumNotice.classList.add('hidden');
-                sourceNotice.classList.add('hidden');
-                campaignNotice.classList.add('hidden');
-                leadmagnetNotice.classList.add('hidden');
+                referralToggleSection.classList.remove('hidden'); // Show for internal
             } else if (type === 'partner') {
-                agentSection.classList.add('hidden');
-                sourceAddContainer.classList.add('hidden');
                 leadmagnetAddContainer.classList.remove('hidden');
-                referralToggleSection.classList.remove('hidden');
-                kongressSection.classList.add('hidden');
+                referralToggleSection.classList.remove('hidden'); // Show for partner
                 utmCampaign.disabled = true;
                 utmCampaign.classList.add('utm-field-locked');
                 campaignNotice.classList.remove('hidden');
                 campaignNotice.textContent = '🔒 Auto-generated for cooperation partners';
-                utmMedium.disabled = false;
-                utmSource.disabled = false;
-                leadmagnet.disabled = false;
-                utmMedium.classList.remove('utm-field-locked');
-                utmSource.classList.remove('utm-field-locked');
-                leadmagnet.classList.remove('utm-field-locked');
-                mediumNotice.classList.add('hidden');
-                sourceNotice.classList.add('hidden');
-                leadmagnetNotice.classList.add('hidden');
             } else if (type === 'kongress') {
                 isKongressMode = true;
-                agentSection.classList.add('hidden');
-                sourceAddContainer.classList.add('hidden');
-                leadmagnetAddContainer.classList.add('hidden');
-                referralToggleSection.classList.add('hidden');
                 kongressSection.classList.remove('hidden');
-                utmMedium.disabled = true;
-                utmSource.disabled = true;
-                utmCampaign.disabled = true;
-                leadmagnet.disabled = true;
-                utmMedium.classList.add('utm-field-locked');
-                utmSource.classList.add('utm-field-locked');
-                utmCampaign.classList.add('utm-field-locked');
-                leadmagnet.classList.add('utm-field-locked');
-                mediumNotice.classList.remove('hidden');
-                sourceNotice.classList.remove('hidden');
-                campaignNotice.classList.remove('hidden');
-                leadmagnetNotice.classList.remove('hidden');
+                
+                // Lock fields for Kongress mode
+                [utmMedium, utmSource, utmCampaign, leadmagnet].forEach(el => {
+                    el.disabled = true;
+                    el.classList.add('utm-field-locked');
+                });
+                [mediumNotice, sourceNotice, campaignNotice, leadmagnetNotice].forEach(el => el.classList.remove('hidden'));
+                
+                // Set values for Kongress mode
                 utmMedium.value = 'cooperation';
                 utmCampaign.value = 'InvestmentKongress25_Speaker';
                 leadmagnet.value = 'Kongress';
             }
+            
             updateKongressReferralField();
             createNewLink();
         }
@@ -1279,102 +1626,150 @@
         function toggleReferralMode() {
             const toggle = document.getElementById('referral-toggle');
             const referralSection = document.getElementById('referral-section');
+            const emailLookupSection = document.getElementById('email-lookup-section');
             const paidContainer = document.getElementById('paid-options-container');
             const utmMedium = document.getElementById('utm_medium');
             const utmSource = document.getElementById('utm_source');
             const utmCampaign = document.getElementById('utm_campaign');
+
             const mediumNotice = document.getElementById('medium-locked-notice');
             const sourceNotice = document.getElementById('source-locked-notice');
             const campaignNotice = document.getElementById('campaign-locked-notice');
+
+            const partnerNameGroup = document.getElementById('partner-name-group');
+            const partnerReferralInfo = document.getElementById('partner-referral-info');
+            const internalReferralInfo = document.getElementById('internal-referral-info');
+            const referralIdError = document.getElementById('referral-id-error');
+            const referralIdDescription = document.getElementById('referral-id-description');
+
             isReferralMode = toggle.checked;
+
+            // Reset referral UI elements before logic
+            partnerNameGroup.style.display = 'none';
+            partnerReferralInfo.style.display = 'none';
+            internalReferralInfo.style.display = 'none';
+            referralIdError.style.display = 'none';
+            emailLookupSection.classList.add('hidden');
+
             if (isReferralMode) {
                 referralSection.classList.remove('hidden');
                 paidContainer.style.display = 'none';
-                utmMedium.disabled = true;
-                utmSource.disabled = true;
-                utmCampaign.disabled = true;
-                utmMedium.classList.add('utm-field-locked');
-                utmSource.classList.add('utm-field-locked');
-                utmCampaign.classList.add('utm-field-locked');
-                mediumNotice.classList.remove('hidden');
-                sourceNotice.classList.remove('hidden');
-                campaignNotice.classList.remove('hidden');
-                campaignNotice.textContent = '🔒 Locked in referral mode - automatically set to "leadmagnet_referralprogram"';
-                utmMedium.value = 'cooperation';
-                updateSourceOptions();
-                updateReferralCampaign();
-            } else {
+                
+                // Lock common UTM fields
+                [utmMedium, utmSource, utmCampaign].forEach(el => {
+                    el.disabled = true;
+                    el.classList.add('utm-field-locked');
+                });
+                [mediumNotice, sourceNotice, campaignNotice].forEach(el => el.classList.remove('hidden'));
+
+                if (currentUserType === 'internal') {
+                    internalReferralInfo.style.display = 'block';
+                    referralIdDescription.textContent = "Enter a valid Referral ID to be verified against our database.";
+                    
+                    utmMedium.value = 'referral';
+                    utmCampaign.value = 'Kongress2025';
+                    
+                    mediumNotice.textContent = '🔒 Locked - automatically set to "referral"';
+                    sourceNotice.textContent = '🔒 Locked - automatically set based on Referral ID.';
+                    campaignNotice.textContent = '🔒 Locked - automatically set to "Kongress2025"';
+                } else if (currentUserType === 'partner') {
+                    partnerReferralInfo.style.display = 'block';
+                    referralIdDescription.textContent = "Enter your unique referral ID. This will automatically set your UTM parameters.";
+                    
+                    utmMedium.value = 'cooperation';
+                    updateReferralCampaign();
+                    
+                    mediumNotice.textContent = '🔒 Locked - automatically set to "cooperation"';
+                    sourceNotice.textContent = '🔒 Locked - automatically set based on Referral ID';
+                    campaignNotice.textContent = '🔒 Locked in referral mode - automatically set to "leadmagnet_referralprogram"';
+                }
+            } else { // Referral mode is OFF
                 referralSection.classList.add('hidden');
                 document.getElementById('referral_id').value = '';
-                document.getElementById('partner_name').value = '';
-                document.getElementById('partner-name-group').style.display = 'none';
-                if (currentUserType === 'partner') {
-                    utmMedium.disabled = false;
-                    utmSource.disabled = false;
-                    utmMedium.classList.remove('utm-field-locked');
-                    utmSource.classList.remove('utm-field-locked');
-                    mediumNotice.classList.add('hidden');
-                    sourceNotice.classList.add('hidden');
-                    campaignNotice.textContent = '🔒 Auto-generated for cooperation partners';
-                } else {
-                    utmMedium.disabled = false;
-                    utmSource.disabled = false;
-                    utmCampaign.disabled = false;
-                    utmMedium.classList.remove('utm-field-locked');
-                    utmSource.classList.remove('utm-field-locked');
+                
+                // Unlock fields
+                utmMedium.disabled = false;
+                utmSource.disabled = false;
+                utmCampaign.disabled = (currentUserType === 'partner');
+                utmMedium.classList.remove('utm-field-locked');
+                utmSource.classList.remove('utm-field-locked');
+
+                if (currentUserType !== 'partner') {
                     utmCampaign.classList.remove('utm-field-locked');
-                    mediumNotice.classList.add('hidden');
-                    sourceNotice.classList.add('hidden');
-                    campaignNotice.classList.add('hidden');
                 }
-                utmMedium.value = currentUserType === 'partner' ? 'cooperation' : 'organic';
-                handleMediumChange();
+
+                mediumNotice.classList.add('hidden');
+                sourceNotice.classList.add('hidden');
+                campaignNotice.classList.add('hidden');
+
+                if (currentUserType === 'partner') {
+                    campaignNotice.classList.remove('hidden');
+                    campaignNotice.textContent = '🔒 Auto-generated for cooperation partners';
+                    utmMedium.value = 'cooperation';
+                } else {
+                     utmMedium.value = '';
+                }
+                
+                handleMediumChange(); 
             }
             updateKongressReferralField();
         }
 
         function handleReferralId() {
             if (!isReferralMode) return;
+
             const referralId = document.getElementById('referral_id').value.trim();
             const partnerNameInput = document.getElementById('partner_name');
             const partnerNameGroup = document.getElementById('partner-name-group');
             const utmSource = document.getElementById('utm_source');
-            const utmCampaign = document.getElementById('utm_campaign');
             const statusDiv = document.getElementById('status');
             const referralIdError = document.getElementById('referral-id-error');
+
             if (referralId) {
                 statusDiv.textContent = 'Verifying Referral ID...';
                 statusDiv.style.color = 'gray';
                 referralIdError.style.display = 'none';
-                const referralDatabaseUrl = 'https://script.google.com/macros/s/AKfycbwM1LtNIHHGzYc2i6HseeeZpoanhCEIYWAYtJU0s8hZVlsApXO6gCUQgG6qAulGvBDepQ/exec';
-                const fetchUrl = `${referralDatabaseUrl}?referral_id=${referralId}&v=${new Date().getTime()}`;
+
+                const fetchUrl = `${REFERRAL_DATABASE_URL}?referral_id=${referralId}&v=${new Date().getTime()}`;
+                
                 fetch(fetchUrl)
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
-                            const partnerName = data.name;
-                            partnerNameInput.value = partnerName;
+                            const verifiedName = data.name;
+                            partnerNameInput.value = verifiedName;
                             partnerNameGroup.style.display = 'block';
-                            const customSource = `${partnerName}_${referralId}`;
-                            if (!utmSourceOptions.cooperation.includes(customSource)) {
-                                utmSourceOptions.cooperation.push(customSource);
-                            }
-                            updateSourceOptions();
-                            utmSource.value = customSource;
-                            updateReferralCampaign();
-                            statusDiv.textContent = `✓ Referral tracking configured for: ${partnerName}`;
+                            statusDiv.textContent = `✓ Referral tracking configured for: ${verifiedName}`;
                             statusDiv.style.color = 'green';
-                            setTimeout(() => {
-                                statusDiv.textContent = '';
-                            }, 3000);
+                            setTimeout(() => { statusDiv.textContent = ''; }, 3000);
+
+                            // Apply specific logic for different user types
+                            if (currentUserType === 'partner') {
+                                const customSource = `${verifiedName}_${referralId}`;
+                                if (!utmSourceOptions.cooperation.includes(customSource)) {
+                                    utmSourceOptions.cooperation.push(customSource);
+                                }
+                                updateSourceOptions();
+                                utmSource.value = customSource;
+                                updateReferralCampaign();
+                            } else if (currentUserType === 'internal') {
+                                const currentMedium = 'referral';
+                                if (!utmSourceOptions[currentMedium].includes(verifiedName)) {
+                                    utmSourceOptions[currentMedium].push(verifiedName);
+                                }
+                                updateSourceOptions();
+                                utmSource.value = verifiedName;
+                            }
                         } else {
                             referralIdError.textContent = 'Referral ID doesnt exist';
                             referralIdError.style.display = 'block';
                             statusDiv.textContent = '';
                             partnerNameInput.value = '';
                             partnerNameGroup.style.display = 'none';
-                            updateSourceOptions();
-                            utmCampaign.value = '';
+                            if (currentUserType === 'partner' || currentUserType === 'internal') {
+                                updateSourceOptions();
+                                document.getElementById('utm_campaign').value = '';
+                            }
                         }
                     })
                     .catch(error => {
@@ -1386,8 +1781,10 @@
             } else {
                 partnerNameInput.value = '';
                 partnerNameGroup.style.display = 'none';
-                updateSourceOptions();
-                utmCampaign.value = '';
+                if (currentUserType === 'partner' || currentUserType === 'internal') {
+                    updateSourceOptions();
+                    document.getElementById('utm_campaign').value = '';
+                }
                 referralIdError.style.display = 'none';
             }
         }
@@ -1397,11 +1794,13 @@
             const sourceDropdown = document.getElementById('utm_source');
             const selectedMedium = mediumDropdown.value;
             const currentSourceValue = sourceDropdown.value;
+
             sourceDropdown.innerHTML = '';
             const emptyOption = document.createElement('option');
             emptyOption.value = '';
             emptyOption.textContent = '-- Select Source --';
             sourceDropdown.appendChild(emptyOption);
+
             const options = Array.from(new Set(utmSourceOptions[selectedMedium] || []));
             options.forEach(optionValue => {
                 const option = document.createElement('option');
@@ -1421,6 +1820,9 @@
             if (!newSource) {
                 alert('Please enter a source name');
                 return;
+            }
+            if (!utmSourceOptions[selectedMedium]) {
+                utmSourceOptions[selectedMedium] = [];
             }
             if (utmSourceOptions[selectedMedium].includes(newSource)) {
                 alert('This source already exists for the selected medium');
@@ -1458,23 +1860,31 @@
             selectElement.appendChild(option);
             selectElement.value = newOption;
             newOptionInput.value = '';
-            successDiv.textContent = `✓ "${newOption}" added successfully!`;
-            successDiv.style.display = 'block';
-            setTimeout(() => {
-                successDiv.style.display = 'none';
-            }, 3000);
+            if (successDiv) {
+                successDiv.textContent = `✓ "${newOption}" added successfully!`;
+                successDiv.style.display = 'block';
+                setTimeout(() => {
+                    successDiv.style.display = 'none';
+                }, 3000);
+            }
         }
 
         function handleMediumChange() {
             const medium = document.getElementById('utm_medium').value;
             const paidContainer = document.getElementById('paid-options-container');
             const campaignInput = document.getElementById('utm_campaign');
-            paidContainer.style.display = (medium === 'paid') ? 'block' : 'none';
-            campaignInput.readOnly = (medium === 'paid');
-            if (medium === 'paid') {
+            paidContainer.style.display = (medium === 'paid' && !isReferralMode) ? 'block' : 'none';
+            
+            if (currentUserType === 'internal' && !isReferralMode) {
+                 campaignInput.readOnly = (medium === 'paid');
+            }
+            
+            if (medium === 'paid' && !isReferralMode) {
                 campaignInput.value = '';
             } else {
-                campaignInput.readOnly = false;
+                 if (currentUserType === 'internal' && !isReferralMode) {
+                     campaignInput.readOnly = false;
+                 }
             }
             updateSourceOptions();
         }
@@ -1488,8 +1898,14 @@
             const dateString = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
             let agentName = '';
             let utmCampaign = '';
+            let utmContent = '';
 
-            if (isReferralMode) {
+            if (currentUserType === 'internal' && isReferralMode) {
+                utmContent = document.getElementById('referral_id').value.trim();
+            }
+            const contentParamString = utmContent ? `&utm_content=${encodeURIComponent(utmContent)}` : '';
+
+            if (isReferralMode && currentUserType === 'partner') {
                 const partnerName = document.getElementById('partner_name').value.trim();
                 agentName = partnerName || 'ReferralPartner';
                 utmCampaign = `${leadmagnet}_referralprogram`;
@@ -1504,18 +1920,21 @@
                 } else {
                     utmCampaign = `${leadmagnet}_cooperation_${dateString}`;
                 }
-            } else {
+            } else { // Internal User (Referral or Normal)
                 agentName = document.getElementById('agent_name').value;
-                if (utmMedium === 'paid') {
+                if (isReferralMode) { // Internal Referral Mode
+                    utmCampaign = document.getElementById('utm_campaign').value; // Reads 'Kongress2025'
+                } else if (utmMedium === 'paid') { // Internal Paid Mode
                     const campaignGoal = document.getElementById('campaign_goal').value;
                     const targetGroup = document.getElementById('target_group').value;
                     utmCampaign = `${campaignGoal}_${leadmagnet}_${targetGroup}_${dateString}`;
-                } else if (leadmagnet === 'Kongress') {
+                } else if (leadmagnet === 'Kongress') { // Internal Kongress
                     utmCampaign = 'InvestmentKongress25';
-                } else {
-                    utmCampaign = `${leadmagnet}_${dateString}`;
+                } else { // Internal Normal
+                    utmCampaign = document.getElementById('utm_campaign').value || `${leadmagnet}_${dateString}`;
                 }
             }
+            
             document.getElementById('utm_campaign').value = utmCampaign;
             let currentURL = '';
             const param1Name = 'utm_source';
@@ -1528,40 +1947,49 @@
             const additionalPathK3 = leadmagnet;
             const additionalPathL3 = dateString;
             
-            // --- START: FULLY RESTORED URL LOGIC ---
             if (additionalPathK3 === "Kongress" && domain === "investmenter.de") {
                 const baseUrl = `https://immo.${domain}/${additionalPathK3}/`;
                 const params = new URLSearchParams();
 
-                // MODIFICATION: Check for partner in referral mode for Kongress
+                // Handle referrer parameter for different scenarios
+                let referrerValue = '';
+
                 if (currentUserType === 'partner' && isReferralMode) {
+                    // Partner referral mode
                     const partnerReferralId = document.getElementById('referral_id').value.trim();
                     if (partnerReferralId) {
-                        params.set('referrer', partnerReferralId);
+                        referrerValue = partnerReferralId;
+                    }
+                } else if (currentUserType === 'internal' && isReferralMode) {
+                    // Internal referral mode - use the referral ID from referral_id field
+                    const internalReferralId = document.getElementById('referral_id').value.trim();
+                    if (internalReferralId) {
+                        referrerValue = internalReferralId;
                     }
                 } else {
-                    // Existing logic for other user types (Internal, Kongress Speaker, etc.)
-                    const kongressReferralId = document.getElementById('kongress_referral_id').value.trim();
-                    if (kongressReferralId) {
-                        params.set('referrer', kongressReferralId);
+                    // Non-referral mode - use email lookup or predefined referral IDs
+                    const autoReferralId = document.getElementById('auto_referral_id').value.trim();
+                    const kongressReferralInputValue = document.getElementById('kongress_referral_id').value.trim();
+                    
+                    if (autoReferralId) {
+                        referrerValue = autoReferralId;
+                    } else if (kongressReferralInputValue) {
+                        referrerValue = kongressReferralInputValue;
                     }
                 }
 
-                let kongressCampaign;
-                if (currentUserType === 'kongress') {
-                    kongressCampaign = 'InvestmentKongress25_Speaker';
-                } else if (currentUserType === 'partner') {
-                    if (isReferralMode) {
-                        kongressCampaign = 'Kongress_referralprogram';
-                    } else {
-                        kongressCampaign = 'InvestmentKongress25_ReferralProgram';
-                    }
-                } else {
-                    kongressCampaign = 'InvestmentKongress25';
+                // Add referrer parameter if we have a value
+                if (referrerValue) {
+                    params.set('referrer', referrerValue);
                 }
+
+                let kongressCampaign = utmCampaign;
                 params.set(param1Name, param1Value);
                 params.set(param2Name, param2Value);
                 params.set(param3Name, kongressCampaign);
+                if (utmContent) {
+                    params.set('utm_content', utmContent);
+                }
                 params.set('one_s', param1Value);
                 params.set('one_m', param2Value);
                 params.set('one_c', kongressCampaign);
@@ -1572,25 +2000,25 @@
             } else if (domain === "corporate.investmenter.de") {
                 switch (utmMedium.toLowerCase()) {
                     case 'referral':
-                        currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_${param1Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_${param1Value}&utm_agent=${additionalPathE3}`;
+                        currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}` + contentParamString;
                         break;
                     case 'organic':
                     case 'cooperation':
-                        currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathK3}_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathK3}_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathK3}_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathK3}_${additionalPathL3}&utm_agent=${additionalPathE3}` + contentParamString;
                         break;
                     case 'paid':
                         switch (utmSource.toLowerCase()) {
                             case 'meta':
-                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}`;
+                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}` + contentParamString;
                                 break;
                             case 'google':
-                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}`;
+                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}` + contentParamString;
                                 break;
                             case 'taboola':
-                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=taboola&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
+                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=taboola&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}` + contentParamString;
                                 break;
                             case 'linkedin':
-                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=linkedin&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
+                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=linkedin&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}` + contentParamString;
                                 break;
                             default:
                                 currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=MISSINGYETTHIS CANTBEDONEATMSYSTEMTOBEFOUND`;
@@ -1599,103 +2027,58 @@
                         break;
                 }
             } else if (additionalPathK3.toLowerCase() === 'webseite') {
+                let baseUrl = 'https://dubai-immobilie-kaufen.de';
+                let params = `?${param1Name}=${param1Value}&${param2Name}=${param2Value}`;
                 switch (utmMedium.toLowerCase()) {
                     case 'referral':
-                        currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_${param1Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_${param1Value}&utm_agent=${additionalPathE3}`;
+                        params += `&${param3Name}=${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${param3Value}&utm_agent=${additionalPathE3}`;
                         break;
                     case 'organic':
                     case 'cooperation':
-                        currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathK3}_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathK3}_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        params += `&${param3Name}=${additionalPathK3}_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathK3}_${additionalPathL3}&utm_agent=${additionalPathE3}`;
                         break;
                     case 'paid':
                         switch (utmSource.toLowerCase()) {
-                            case 'meta':
-                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}`;
-                                break;
-                            case 'google':
-                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}`;
-                                break;
-                            case 'taboola':
-                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=taboola&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
-                                break;
-                            case 'linkedin':
-                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=linkedin&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
-                                break;
-                            default:
-                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=MISSINGYETTHIS CANTBEDONEATMSYSTEMTOBEFOUND`;
-                                break;
+                            case 'meta': params += `&${param3Name}=${param3Value}&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}`; break;
+                            case 'google': params += `&${param3Name}=${param3Value}&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}`; break;
+                            case 'taboola': params += `&${param3Name}=${param3Value}&one_s=taboola&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`; break;
+                            case 'linkedin': params += `&${param3Name}=${param3Value}&one_s=linkedin&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`; break;
+                            default: params += `&${param3Name}=MISSINGYETTHIS CANTBEDONEATMSYSTEMTOBEFOUND`; break;
                         }
                         break;
                 }
+                currentURL = baseUrl + params + contentParamString;
             } else if (utmMedium.toLowerCase() === 'paid') {
-                switch (utmSource.toLowerCase()) {
-                    case 'meta':
-                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}`;
-                        break;
-                    case 'google':
-                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}`;
-                        break;
-                    case 'taboola':
-                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=taboola&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
-                        break;
-                    case 'linkedin':
-                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=linkedin&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
-                        break;
-                    default:
-                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=MISSINGYETTHIS CANTBEDONEATMSYSTEMTOBEFOUND`;
-                        break;
-                }
-            } else {
-                switch (utmMedium.toLowerCase()) {
-                    case 'referral':
-                        if (additionalPathK3 === "dieterbohlen" && domain === "investmenter.com") {
-                            currentURL = `https://dieterbohlen.${domain}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_${param1Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_${param1Value}&utm_agent=${additionalPathE3}`;
-                        } else if (additionalPathK3 === "warteliste" && domain === "investmenter.com") {
-                            currentURL = `https://warteliste.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_${param1Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_${param1Value}&utm_agent=${additionalPathE3}`;
-                        } else if (additionalPathK3 === "flipreport" && domain === "investmenter.com") {
-                            currentURL = `https://report.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_${param1Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_${param1Value}&utm_agent=${additionalPathE3}`;
-                        } else if (additionalPathK3 === "flipreport-wechsler" && domain === "investmenter.com") {
-                            currentURL = `https://report.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_flipreport-wechsler_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_flipreport-wechsler_${additionalPathL3}&utm_agent=${additionalPathE3}`;
-                        } else if (additionalPathK3 === "Vermögenstag" && domain === "investmenter.de") {
-                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_EricPromm_Vermögenstag_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_EricPromm_Vermögenstag_${additionalPathL3}&utm_agent=${additionalPathE3}`;
-                        } else if (additionalPathK3 === "dubai-islands" && domain === "investmenter.de") {
-                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_dubai-islands_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_dubai-islands_${additionalPathL3}&utm_agent=${additionalPathE3}`;
-                        } else if (additionalPathK3 === "vermogensschutz-liste" && domain === "investmenter.de") {
-                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}&utm_agent=${additionalPathE3}`;
-                        } else if (additionalPathK3 === "webinar" && domain === "investmenter.de") {
-                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}&utm_agent=${additionalPathE3}`;
-                        } else {
-                            currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_${param1Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_${param1Value}&utm_agent=${additionalPathE3}`;
-                        }
-                        break;
-                    case 'organic':
-                    case 'cooperation':
-                        if (additionalPathK3 === "dieterbohlen" && domain === "investmenter.com") {
-                            currentURL = `https://dieterbohlen.${domain}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathK3}_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathK3}_${additionalPathL3}&utm_agent=${additionalPathE3}`;
-                        } else if (additionalPathK3 === "warteliste" && domain === "investmenter.com") {
-                            currentURL = `https://warteliste.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathK3}_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathK3}_${additionalPathL3}&utm_agent=${additionalPathE3}`;
-                        } else if (additionalPathK3 === "flipreport" && domain === "investmenter.com") {
-                            currentURL = `https://report.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_${param3Value}&utm_agent=${additionalPathE3}`;
-                        } else if (additionalPathK3 === "flipreport-wechsler" && domain === "investmenter.com") {
-                            currentURL = `https://report.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_flipreport-wechsler_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_flipreport-wechsler_${additionalPathL3}&utm_agent=${additionalPathE3}`;
-                        } else if (additionalPathK3 === "Vermögenstag" && domain === "investmenter.de") {
-                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_EricPromm_Vermögenstag_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_EricPromm_Vermögenstag_${additionalPathL3}&utm_agent=${additionalPathE3}`;
-                        } else if (additionalPathK3 === "dubai-islands" && domain === "investmenter.de") {
-                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_dubai-islands_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_dubai-islands_${additionalPathL3}&utm_agent=${additionalPathE3}`;
-                        } else if (additionalPathK3 === "vermogensschutz-liste" && domain === "investmenter.de") {
-                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}&utm_agent=${additionalPathE3}`;
-                        } else if (additionalPathK3 === "webinar" && domain === "investmenter.de") {
-                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}&utm_agent=${additionalPathE3}`;
-                        } else {
-                            currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathK3}_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathK3}_${additionalPathL3}&utm_agent=${additionalPathE3}`;
-                        }
-                        break;
-                    default:
-                        console.log("UTM Medium not recognized. No URL created.");
-                        return null;
-                }
+                 let baseUrl = `https://${domain}/${additionalPathK3}/`;
+                 let params = `?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}`;
+                 switch (utmSource.toLowerCase()) {
+                     case 'meta': params += `&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}`; break;
+                     case 'google': params += `&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}`; break;
+                     case 'taboola': params += `&one_s=taboola&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`; break;
+                     case 'linkedin': params += `&one_s=linkedin&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`; break;
+                     default: params += `&${param3Name}=MISSINGYETTHIS CANTBEDONEATMSYSTEMTOBEFOUND`; break;
+                 }
+                 currentURL = baseUrl + params + contentParamString;
+            } else { // Organic, Cooperation, Referral (non-paid, non-special domains)
+                let baseUrl;
+                let finalCampaign = param3Value;
+                
+                const specialSubdomains = {
+                    "dieterbohlen": `https://dieterbohlen.${domain}`,
+                    "warteliste": `https://warteliste.${domain}/${additionalPathK3}`,
+                    "flipreport": `https://report.${domain}/${additionalPathK3}`,
+                    "flipreport-wechsler": `https://report.${domain}/${additionalPathK3}`,
+                    "Vermögenstag": `https://immo.${domain}/${additionalPathK3}`,
+                    "dubai-islands": `https://immo.${domain}/${additionalPathK3}`,
+                    "vermogensschutz-liste": `https://immo.${domain}/${additionalPathK3}`,
+                    "webinar": `https://immo.${domain}/${additionalPathK3}`
+                };
+                
+                baseUrl = specialSubdomains[additionalPathK3] || `https://${domain}/${additionalPathK3}/`;
+
+                let params = `?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${finalCampaign}&one_s=${param1Value}&one_m=${param2Value}&one_c=${finalCampaign}&utm_agent=${additionalPathE3}`;
+                currentURL = baseUrl + params + contentParamString;
             }
-            // --- END: FULLY RESTORED URL LOGIC ---
 
             document.getElementById('original_link').value = currentURL;
             document.getElementById('short_link').value = "(Click 'Generate & Save Link' to create short link)";
@@ -1703,16 +2086,28 @@
             let saveData = {
                 domain, leadmagnet, utmMedium, utmSource, utmCampaign, agentName,
                 generatedLink: currentURL, userType: currentUserType,
-                isReferralMode: isReferralMode, isKongressMode: isKongressMode
+                isReferralMode: isReferralMode, isKongressMode: isKongressMode, utmContent
             };
             
             if (isReferralMode) {
-                saveData.referralId = document.getElementById('referral_id').value;
-                saveData.partnerName = document.getElementById('partner_name').value;
+                saveData.referralId = document.getElementById('referral_id').value.trim();
+                if (currentUserType === 'partner' || currentUserType === 'internal') {
+                    saveData.partnerName = document.getElementById('partner_name').value;
+                }
             }
+
             if (isKongressMode) {
                 saveData.speakerName = document.getElementById('speaker_name').value;
             }
+
+            // Add email lookup data if available
+            const sourceEmail = document.getElementById('source_email').value.trim();
+            const autoReferralId = document.getElementById('auto_referral_id').value.trim();
+            if (sourceEmail && autoReferralId) {
+                saveData.sourceEmail = sourceEmail;
+                saveData.autoReferralId = autoReferralId;
+            }
+
             return { link: currentURL, data: saveData };
         }
 
@@ -1724,24 +2119,28 @@
                 statusDiv.style.color = 'red';
                 return;
             }
-            const { leadmagnet, utmSource, agentName } = result.data;
-            if (!leadmagnet || !utmSource || (currentUserType === 'internal' && !agentName)) {
-                statusDiv.textContent = 'Leadmagnet, Source, and Agent Name are required.';
+
+            const { leadmagnet, utmSource, agentName, referralId } = result.data;
+            if (!leadmagnet || !utmSource || (currentUserType === 'internal' && !agentName) || (isReferralMode && !referralId)) {
+                statusDiv.textContent = 'Leadmagnet, Source, and Agent/Referral ID are required.';
                 statusDiv.style.color = 'red';
                 return;
             }
+
             const now = new Date();
             const timestamp = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
             const linkTitle = `1. Leadmagnet: ${leadmagnet} / 1. UTM Source: ${utmSource} / 1. Agent Name: ${agentName} / 1. Timestamp: ${timestamp}`;
             const linkPath = `${leadmagnet}/${utmSource}`;
             statusDiv.innerHTML = 'Creating short link... <span class="loading"></span>';
             statusDiv.style.color = 'gray';
+
             try {
                 const shortLink = await createShortLink(result.link, linkTitle, linkPath);
                 document.getElementById('short_link').value = shortLink;
                 result.data.shortLink = shortLink;
                 statusDiv.textContent = '✓ Short link created successfully!';
                 statusDiv.style.color = 'green';
+                
                 if (GOOGLE_SHEETS_SAVE_URL && GOOGLE_SHEETS_SAVE_URL !== 'PASTE_YOUR_NEW_WEB_APP_URL_HERE') {
                     saveToGoogleSheets(result.data);
                 }
@@ -1789,7 +2188,11 @@
             document.getElementById('original_link').value = '';
             document.getElementById('short_link').value = '';
             document.getElementById('status').textContent = '';
+            document.getElementById('source_email').value = '';
+            document.getElementById('auto_referral_id').value = '';
+            document.getElementById('email-lookup-status').innerHTML = '';
             sourceReferrerMap = {};
+
             if (debugMode) {
                 document.getElementById('debug-info').style.display = 'none';
             }
@@ -1809,9 +2212,10 @@
             }
             document.getElementById('leadmagnet-success').style.display = 'none';
             document.getElementById('source-success').style.display = 'none';
-            if (currentUserType === 'internal') {
+            if (document.getElementById('agent_name-success')) {
                 document.getElementById('agent_name-success').style.display = 'none';
             }
+            
             const sourceDropdown = document.getElementById('utm_source');
             sourceDropdown.innerHTML = '<option value="">-- Select Source --</option>';
             handleMediumChange();
@@ -1833,9 +2237,12 @@
         document.getElementById('referral_id').addEventListener('input', function() {
             setTimeout(handleReferralId, 100);
         });
+        document.getElementById('source_email').addEventListener('input', function() {
+            setTimeout(handleEmailLookup, 500);
+        });
 
         function addFieldListeners() {
-            const fieldsToWatch = ['domain', 'leadmagnet', 'utm_medium', 'utm_source', 'utm_campaign', 'agent_name', 'kongress_referral_id'];
+            const fieldsToWatch = ['domain', 'leadmagnet', 'utm_medium', 'utm_source', 'utm_campaign', 'agent_name', 'kongress_referral_id', 'referral_id', 'source_email'];
             fieldsToWatch.forEach(fieldId => {
                 const field = document.getElementById(fieldId);
                 if (field) {
@@ -1864,7 +2271,6 @@
         });
 
         window.onload = () => {
-            handleMediumChange();
             setUserType('internal');
             addFieldListeners();
         };
