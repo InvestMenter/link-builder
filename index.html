@@ -1064,6 +1064,12 @@
         let sourceReferrerMap = {};
         let existingShortLinks = new Map(); // Cache for existing short links
 
+        // ADD THESE NEW VARIABLES TO PREVENT RACE CONDITIONS
+        let emailLookupInProgress = false;
+        let currentEmailBeingProcessed = '';
+        let emailLookupTimeout = null;
+        let processedEmails = new Set(); // Track emails that have been successfully processed
+
         // Predefined referral IDs for specific sources
         const predefinedReferralIds = {
             'AnnaHerbst': 'YS5oZXJic3RA',
@@ -1361,16 +1367,25 @@
             }
         };
 
+        // IMPROVED EMAIL LOOKUP FUNCTION WITH RACE CONDITION PROTECTION
         async function handleEmailLookup() {
             const email = document.getElementById('source_email').value.trim();
             const statusDiv = document.getElementById('email-lookup-status');
             const referralIdInput = document.getElementById('auto_referral_id');
             const kongressReferralInput = document.getElementById('kongress_referral_id');
 
+            // Clear timeout if it exists
+            if (emailLookupTimeout) {
+                clearTimeout(emailLookupTimeout);
+                emailLookupTimeout = null;
+            }
+
             if (!email) {
                 statusDiv.textContent = '';
                 referralIdInput.value = '';
                 kongressReferralInput.value = '';
+                emailLookupInProgress = false;
+                currentEmailBeingProcessed = '';
                 // Regenerate link without referral ID
                 if (shouldRegenerateLink()) {
                     generateLink();
@@ -1385,7 +1400,23 @@
                 return;
             }
 
-            console.log('=== STARTING EMAIL LOOKUP ===');
+            // CHECK IF ALREADY PROCESSED - PREVENT DUPLICATE PROCESSING
+            if (processedEmails.has(email)) {
+                console.log('Email already processed, skipping:', email);
+                return;
+            }
+
+            // CHECK IF ALREADY IN PROGRESS FOR THIS EMAIL
+            if (emailLookupInProgress && currentEmailBeingProcessed === email) {
+                console.log('Email lookup already in progress for:', email);
+                return;
+            }
+
+            // LOCK THIS EMAIL FOR PROCESSING
+            emailLookupInProgress = true;
+            currentEmailBeingProcessed = email;
+
+            console.log('=== STARTING EMAIL LOOKUP (RACE CONDITION PROTECTED) ===');
             console.log('Email:', email, 'Length:', email.length);
             statusDiv.innerHTML = '<span style="color: gray;">🔍 Looking up email in database...</span>';
 
@@ -1416,11 +1447,13 @@
                     document.getElementById('kongress-referral-section').classList.remove('hidden');
                     document.getElementById('kongress_referral_id').readOnly = true;
                     
+                    // ADD TO PROCESSED SET
+                    processedEmails.add(email);
+                    
                     // Regenerate the link with the existing referral ID
                     if (shouldRegenerateLink()) {
                         generateLink();
                     }
-                    return; // IMPORTANT: Stop here, don't create new entry
                 } else {
                     // Email doesn't exist in database - create new entry
                     console.log('❌ EMAIL NOT FOUND - Will create new entry');
@@ -1440,9 +1473,20 @@
                     if (saveResult.success) {
                         statusDiv.innerHTML = '<span class="success-message">✅ New referral ID generated and saved: ' + newReferralId + '</span>';
                         console.log('✅ Successfully saved new email to database');
+                        
+                        // ADD TO PROCESSED SET ONLY AFTER SUCCESSFUL SAVE
+                        processedEmails.add(email);
                     } else {
                         statusDiv.innerHTML = '<span class="error-message">⚠️ Referral ID generated but database save failed: ' + saveResult.error + '</span>';
                         console.error('❌ Database save failed:', saveResult.error);
+                        
+                        // Check if it's a "already exists" error
+                        if (saveResult.error && saveResult.error.includes('already exists') && saveResult.existing_id) {
+                            referralIdInput.value = saveResult.existing_id;
+                            kongressReferralInput.value = saveResult.existing_id;
+                            statusDiv.innerHTML = '<span class="success-message">✅ Email already exists - using existing referral ID: ' + saveResult.existing_id + '</span>';
+                            processedEmails.add(email);
+                        }
                     }
                     
                     // Show kongress referral section
@@ -1459,6 +1503,10 @@
                 statusDiv.innerHTML = '<span class="error-message">⚠️ Error looking up email: ' + error.message + '</span>';
                 referralIdInput.value = '';
                 kongressReferralInput.value = '';
+            } finally {
+                // ALWAYS UNLOCK THE PROCESS
+                emailLookupInProgress = false;
+                currentEmailBeingProcessed = '';
             }
         }
 
@@ -2193,6 +2241,15 @@
             document.getElementById('email-lookup-status').innerHTML = '';
             sourceReferrerMap = {};
 
+            // RESET EMAIL LOOKUP STATE
+            emailLookupInProgress = false;
+            currentEmailBeingProcessed = '';
+            processedEmails.clear();
+            if (emailLookupTimeout) {
+                clearTimeout(emailLookupTimeout);
+                emailLookupTimeout = null;
+            }
+
             if (debugMode) {
                 document.getElementById('debug-info').style.display = 'none';
             }
@@ -2237,12 +2294,31 @@
         document.getElementById('referral_id').addEventListener('input', function() {
             setTimeout(handleReferralId, 100);
         });
+
+        // IMPROVED EMAIL INPUT LISTENER WITH DEBOUNCING
         document.getElementById('source_email').addEventListener('input', function() {
-            setTimeout(handleEmailLookup, 500);
+            // Clear any existing timeout
+            if (emailLookupTimeout) {
+                clearTimeout(emailLookupTimeout);
+                emailLookupTimeout = null;
+            }
+            
+            const email = this.value.trim();
+            
+            // If email is empty, reset immediately
+            if (!email) {
+                handleEmailLookup();
+                return;
+            }
+            
+            // Debounce email lookup to prevent rapid calls
+            emailLookupTimeout = setTimeout(() => {
+                handleEmailLookup();
+            }, 800); // Increased debounce time to 800ms
         });
 
         function addFieldListeners() {
-            const fieldsToWatch = ['domain', 'leadmagnet', 'utm_medium', 'utm_source', 'utm_campaign', 'agent_name', 'kongress_referral_id', 'referral_id', 'source_email'];
+            const fieldsToWatch = ['domain', 'leadmagnet', 'utm_medium', 'utm_source', 'utm_campaign', 'agent_name', 'kongress_referral_id', 'referral_id'];
             fieldsToWatch.forEach(fieldId => {
                 const field = document.getElementById(fieldId);
                 if (field) {
