@@ -820,17 +820,18 @@
             </div>
             
             <div class="referral-info" id="partner-referral-info">
-                <strong>Referral Mode Active:</strong> UTM parameters are automatically configured as:<br>
-                &bull; UTM Source: YourName_ReferralID<br>
+                <strong>Partner Referral Mode Active:</strong> UTM parameters are automatically configured as:<br>
                 &bull; UTM Medium: cooperation<br>
-                &bull; UTM Campaign: leadmagnet_referralprogram
+                &bull; UTM Source: PartnerName_ReferralID<br>
+                &bull; UTM Campaign: [Leadmagnet name]<br>
+                <small>For Kongress leadmagnet, behaves like internal referral mode.</small>
             </div>
 
             <div class="referral-info" id="internal-referral-info" style="display: none;">
                 <strong>Internal Referral Mode Active:</strong> UTM parameters are automatically configured as:<br>
                 &bull; UTM Medium: referral<br>
                 &bull; UTM Source: [Your selected source name]<br>
-                &bull; UTM Campaign: Kongress2025<br>
+                &bull; UTM Campaign: InvestmentKongress2025ReferralProgram<br>
                 <small>The Referral ID will be added to the link as a <code>utm_content</code> parameter.</small>
             </div>
         </div>
@@ -1226,7 +1227,12 @@
             if (isReferralMode && currentUserType === 'partner') {
                 const leadmagnet = document.getElementById('leadmagnet').value;
                 const utmCampaign = document.getElementById('utm_campaign');
-                utmCampaign.value = `${leadmagnet}_referralprogram`;
+                
+                if (leadmagnet === 'Kongress') {
+                    utmCampaign.value = `InvestmentKongress2025ReferralProgram`;
+                } else if (leadmagnet) {
+                    utmCampaign.value = leadmagnet;
+                }
             }
         }
         
@@ -1258,7 +1264,8 @@
             }
 
             // Show email lookup section for internal users when Kongress is selected and referral mode is off
-            if (currentUserType === 'internal' && !isReferralMode) {
+            // Also show for partner users when Kongress is selected and referral mode is off
+            if ((currentUserType === 'internal' || currentUserType === 'partner') && !isReferralMode) {
                 const currentSource = document.getElementById('utm_source').value;
                 
                 // Check if source has predefined referral ID
@@ -1298,7 +1305,7 @@
             referralSection.classList.remove('hidden');
             emailLookupSection.classList.add('hidden');
 
-            const isPartnerKongressNoReferral = (currentUserType === 'partner' && !isReferralMode);
+            const isPartnerKongressNoReferral = (currentUserType === 'partner' && !isReferralMode && leadmagnet === 'Kongress');
             if (currentUserType === 'internal' || isPartnerKongressNoReferral) {
                 const currentSource = document.getElementById('utm_source').value;
                 referralInput.readOnly = true;
@@ -1576,6 +1583,29 @@
         function handleLeadMagnetChange() {
             updateReferralCampaign();
             updateKongressReferralField();
+            
+            // Handle partner logic for non-Kongress leadmagnets
+            if (currentUserType === 'partner' && !isReferralMode) {
+                const leadmagnet = document.getElementById('leadmagnet').value;
+                const utmCampaign = document.getElementById('utm_campaign');
+                const utmSource = document.getElementById('utm_source');
+                
+                if (leadmagnet && leadmagnet !== 'Kongress') {
+                    // Set campaign to leadmagnet name for non-Kongress
+                    utmCampaign.value = leadmagnet;
+                    
+                    // If we have a partner name from previous referral validation, use it as source
+                    const partnerName = document.getElementById('partner_name').value.trim();
+                    if (partnerName) {
+                        // Add partner name to cooperation sources if not already there
+                        if (!utmSourceOptions.cooperation.includes(partnerName)) {
+                            utmSourceOptions.cooperation.push(partnerName);
+                        }
+                        updateSourceOptions();
+                        utmSource.value = partnerName;
+                    }
+                }
+            }
         }
 
         function handleSpeakerChange() {
@@ -1644,6 +1674,7 @@
                 leadmagnetAddContainer.classList.remove('hidden');
                 referralToggleSection.classList.remove('hidden'); // Show for internal
             } else if (type === 'partner') {
+                sourceAddContainer.classList.remove('hidden'); // Allow partners to add sources
                 leadmagnetAddContainer.classList.remove('hidden');
                 referralToggleSection.classList.remove('hidden'); // Show for partner
                 utmCampaign.disabled = true;
@@ -1691,6 +1722,7 @@
             const referralIdDescription = document.getElementById('referral-id-description');
 
             isReferralMode = toggle.checked;
+            const leadmagnet = document.getElementById('leadmagnet').value;
 
             // Reset referral UI elements before logic
             partnerNameGroup.style.display = 'none';
@@ -1715,21 +1747,35 @@
                     referralIdDescription.textContent = "Enter a valid Referral ID to be verified against our database.";
                     
                     utmMedium.value = 'referral';
-                    utmCampaign.value = 'Kongress2025';
+                    utmCampaign.value = 'InvestmentKongress2025ReferralProgram';
                     
                     mediumNotice.textContent = '🔒 Locked - automatically set to "referral"';
                     sourceNotice.textContent = '🔒 Locked - automatically set based on Referral ID.';
-                    campaignNotice.textContent = '🔒 Locked - automatically set to "Kongress2025"';
+                    campaignNotice.textContent = '🔒 Locked - automatically set to "InvestmentKongress2025ReferralProgram"';
                 } else if (currentUserType === 'partner') {
-                    partnerReferralInfo.style.display = 'block';
-                    referralIdDescription.textContent = "Enter your unique referral ID. This will automatically set your UTM parameters.";
-                    
-                    utmMedium.value = 'cooperation';
-                    updateReferralCampaign();
-                    
-                    mediumNotice.textContent = '🔒 Locked - automatically set to "cooperation"';
-                    sourceNotice.textContent = '🔒 Locked - automatically set based on Referral ID';
-                    campaignNotice.textContent = '🔒 Locked in referral mode - automatically set to "leadmagnet_referralprogram"';
+                    if (leadmagnet === 'Kongress') {
+                        // Same as internal for Kongress
+                        internalReferralInfo.style.display = 'block';
+                        referralIdDescription.textContent = "Enter a valid Referral ID to be verified against our database.";
+                        
+                        utmMedium.value = 'referral';
+                        utmCampaign.value = 'InvestmentKongress2025ReferralProgram';
+                        
+                        mediumNotice.textContent = '🔒 Locked - automatically set to "referral"';
+                        sourceNotice.textContent = '🔒 Locked - automatically set based on Referral ID.';
+                        campaignNotice.textContent = '🔒 Locked - automatically set to "InvestmentKongress2025ReferralProgram"';
+                    } else {
+                        // For non-Kongress leadmagnets
+                        partnerReferralInfo.style.display = 'block';
+                        referralIdDescription.textContent = "Enter your unique referral ID. This will automatically set your UTM parameters.";
+                        
+                        utmMedium.value = 'cooperation';
+                        updateReferralCampaign(); // This will set campaign to leadmagnet name
+                        
+                        mediumNotice.textContent = '🔒 Locked - automatically set to "cooperation"';
+                        sourceNotice.textContent = '🔒 Locked - automatically set to "PartnerName_ReferralID"';
+                        campaignNotice.textContent = '🔒 Locked - automatically set to leadmagnet name';
+                    }
                 }
             } else { // Referral mode is OFF
                 referralSection.classList.add('hidden');
@@ -1752,8 +1798,17 @@
 
                 if (currentUserType === 'partner') {
                     campaignNotice.classList.remove('hidden');
-                    campaignNotice.textContent = '🔒 Auto-generated for cooperation partners';
-                    utmMedium.value = 'cooperation';
+                    
+                    if (leadmagnet === 'Kongress') {
+                        // Same as internal for Kongress
+                        campaignNotice.textContent = '🔒 Auto-generated for cooperation partners';
+                        utmMedium.value = 'cooperation';
+                    } else {
+                        // For non-Kongress leadmagnets
+                        campaignNotice.textContent = '🔒 Auto-generated as leadmagnet name';
+                        utmMedium.value = 'cooperation';
+                        utmCampaign.value = leadmagnet || '';
+                    }
                 } else {
                      utmMedium.value = '';
                 }
@@ -1793,12 +1848,23 @@
 
                             // Apply specific logic for different user types
                             if (currentUserType === 'partner') {
-                                const customSource = `${verifiedName}_${referralId}`;
-                                if (!utmSourceOptions.cooperation.includes(customSource)) {
-                                    utmSourceOptions.cooperation.push(customSource);
+                                const leadmagnet = document.getElementById('leadmagnet').value;
+                                if (leadmagnet === 'Kongress') {
+                                    // Behave like internal for Kongress
+                                    if (!utmSourceOptions.referral.includes(verifiedName)) {
+                                        utmSourceOptions.referral.push(verifiedName);
+                                    }
+                                    updateSourceOptions();
+                                    utmSource.value = verifiedName;
+                                } else {
+                                    // For non-Kongress leadmagnets, use PartnerName_ReferralID format
+                                    const customSource = `${verifiedName}_${referralId}`;
+                                    if (!utmSourceOptions.cooperation.includes(customSource)) {
+                                        utmSourceOptions.cooperation.push(customSource);
+                                    }
+                                    updateSourceOptions();
+                                    utmSource.value = customSource;
                                 }
-                                updateSourceOptions();
-                                utmSource.value = customSource;
                                 updateReferralCampaign();
                             } else if (currentUserType === 'internal') {
                                 const currentMedium = 'referral';
@@ -1954,30 +2020,45 @@
             const contentParamString = utmContent ? `&utm_content=${encodeURIComponent(utmContent)}` : '';
 
             if (isReferralMode && currentUserType === 'partner') {
-                const partnerName = document.getElementById('partner_name').value.trim();
-                agentName = partnerName || 'ReferralPartner';
-                utmCampaign = `${leadmagnet}_referralprogram`;
+                const leadmagnet = document.getElementById('leadmagnet').value;
+                if (leadmagnet === 'Kongress') {
+                    // Behave like internal user for Kongress
+                    const partnerName = document.getElementById('partner_name').value.trim();
+                    agentName = partnerName || 'ReferralPartner';
+                    utmCampaign = `InvestmentKongress2025ReferralProgram`;
+                } else {
+                    // For non-Kongress leadmagnets
+                    const partnerName = document.getElementById('partner_name').value.trim();
+                    agentName = partnerName || 'CooperationPartner';
+                    utmCampaign = leadmagnet;
+                }
             } else if (isKongressMode) {
                 const speakerName = document.getElementById('speaker_name').value;
                 agentName = speakerName || 'KongressSpeaker';
                 utmCampaign = 'InvestmentKongress25_Speaker';
             } else if (currentUserType === 'partner') {
-                agentName = 'CooperationPartner';
+                const leadmagnet = document.getElementById('leadmagnet').value;
                 if (leadmagnet === 'Kongress') {
-                    utmCampaign = 'InvestmentKongress25_ReferralProgram';
+                    // Behave like internal user for Kongress
+                    agentName = 'CooperationPartner';
+                    utmCampaign = 'InvestmentKongress2025ReferralProgram';
                 } else {
-                    utmCampaign = `${leadmagnet}_cooperation_${dateString}`;
+                    // For non-Kongress leadmagnets
+                    // Check if we have a partner name from referral ID validation
+                    const partnerName = document.getElementById('partner_name').value.trim();
+                    agentName = partnerName || 'CooperationPartner';
+                    utmCampaign = leadmagnet;
                 }
             } else { // Internal User (Referral or Normal)
                 agentName = document.getElementById('agent_name').value;
                 if (isReferralMode) { // Internal Referral Mode
-                    utmCampaign = document.getElementById('utm_campaign').value; // Reads 'Kongress2025'
+                    utmCampaign = document.getElementById('utm_campaign').value; // Reads 'InvestmentKongress2025ReferralProgram'
                 } else if (utmMedium === 'paid') { // Internal Paid Mode
                     const campaignGoal = document.getElementById('campaign_goal').value;
                     const targetGroup = document.getElementById('target_group').value;
                     utmCampaign = `${campaignGoal}_${leadmagnet}_${targetGroup}_${dateString}`;
                 } else if (leadmagnet === 'Kongress') { // Internal Kongress
-                    utmCampaign = 'InvestmentKongress25';
+                    utmCampaign = 'InvestmentKongress2025ReferralProgram';
                 } else { // Internal Normal
                     utmCampaign = document.getElementById('utm_campaign').value || `${leadmagnet}_${dateString}`;
                 }
