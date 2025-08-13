@@ -1030,30 +1030,32 @@
         // --- START: MODIFIED createShortLink FUNCTION ---
         async function createShortLink(longUrl, title, path) {
             const SHORT_IO_API_URL = 'https://api.short.io/links/public';
-            const sanitizedPath = sanitizePath(path);
-            
-            // Define path strategies: try the clean path first, then fall back to a random one.
-            const pathStrategies = [
-                sanitizedPath, // 1st Attempt: "leadmagnet/source"
-                null           // 2nd Attempt: Let Short.io auto-generate a path
-            ];
-
+            const baseSanitizedPath = sanitizePath(path);
             let lastError = null;
-            
-            for (let i = 0; i < pathStrategies.length; i++) {
-                const currentPath = pathStrategies[i];
+            const MAX_ATTEMPTS = 10; // Try the original path + 9 variations with -1, -2, etc.
+
+            for (let i = 0; i < MAX_ATTEMPTS; i++) {
+                // On first attempt (i=0), use the original path. On subsequent attempts, append a number.
+                const currentPath = (i === 0) ? baseSanitizedPath : `${baseSanitizedPath}-${i}`;
+                
+                // If the sanitizing process resulted in an empty path, we cannot proceed.
+                if (!currentPath) {
+                    lastError = new Error("Generated path is empty. Please select a lead magnet and source.");
+                    break; // Exit the loop to throw the error.
+                }
+
                 try {
                     if (debugMode) {
-                        console.log(`Attempting path strategy ${i + 1}: "${currentPath || 'auto-generated'}"`);
+                        console.log(`Attempting to create short link with path: "${currentPath}"`);
                     }
+
                     const requestBody = {
                         originalURL: longUrl,
                         domain: SHORT_IO_DOMAIN,
-                        title: title
+                        title: title,
+                        path: currentPath
                     };
-                    if (currentPath !== null && currentPath.length > 0) {
-                        requestBody.path = currentPath;
-                    }
+
                     const response = await fetch(SHORT_IO_API_URL, {
                         method: 'POST',
                         headers: {
@@ -1065,27 +1067,35 @@
 
                     if (response.ok) {
                         const data = await response.json();
-                        if (debugMode) console.log(`Success with path strategy ${i + 1}:`, data);
-                        return data.shortURL;
-                    } else {
-                        const errorData = await response.json();
-                        lastError = errorData;
-                        if (debugMode) console.log(`Strategy ${i + 1} failed:`, errorData);
-                        if (response.status === 409 || (errorData.error && errorData.error.toLowerCase().includes('path'))) {
-                            continue;
-                        } else {
-                            throw new Error(`API error ${response.status}: ${errorData.error || 'Unknown error'}`);
-                        }
+                        if (debugMode) console.log(`Success with path "${currentPath}":`, data);
+                        return data.shortURL; // Success! Return the URL and exit the function.
                     }
+
+                    // If response is not OK, handle the error.
+                    const errorData = await response.json();
+                    lastError = errorData;
+                    
+                    // Check if the error is specifically that the path already exists.
+                    if (response.status === 409 || (errorData.error && errorData.error.toLowerCase().includes('path already exists'))) {
+                        if (debugMode) console.log(`Path "${currentPath}" is already taken. Trying next variation.`);
+                        // If so, continue the loop to try the next path variation (e.g., path-1, path-2).
+                        continue; 
+                    } else {
+                        // For any other kind of error, stop trying immediately.
+                        throw new Error(`API error ${response.status}: ${errorData.error || 'Unknown error'}`);
+                    }
+
                 } catch (error) {
                     lastError = error;
-                    if (debugMode) console.log(`Strategy ${i + 1} exception:`, error);
-                    if (i < pathStrategies.length - 1) {
-                        continue;
-                    }
+                    if (debugMode) console.log(`Exception during attempt ${i+1}:`, error);
+                    // An exception occurred (e.g., network error, or the "throw" from above), so we break the loop.
+                    break;
                 }
             }
-            throw lastError || new Error('All path creation strategies failed');
+
+            // If the loop completes without returning a URL, it means all attempts failed.
+            console.error("All attempts to create a unique short link path failed.", lastError);
+            throw lastError || new Error(`Could not create a unique short link for path '${baseSanitizedPath}' after ${MAX_ATTEMPTS} attempts.`);
         }
         // --- END: MODIFIED createShortLink FUNCTION ---
 
@@ -1522,10 +1532,21 @@
             if (additionalPathK3 === "Kongress" && domain === "investmenter.de") {
                 const baseUrl = `https://immo.${domain}/${additionalPathK3}/`;
                 const params = new URLSearchParams();
-                const kongressReferralId = document.getElementById('kongress_referral_id').value.trim();
-                if (kongressReferralId) {
-                    params.set('referrer', kongressReferralId);
+
+                // MODIFICATION: Check for partner in referral mode for Kongress
+                if (currentUserType === 'partner' && isReferralMode) {
+                    const partnerReferralId = document.getElementById('referral_id').value.trim();
+                    if (partnerReferralId) {
+                        params.set('referrer', partnerReferralId);
+                    }
+                } else {
+                    // Existing logic for other user types (Internal, Kongress Speaker, etc.)
+                    const kongressReferralId = document.getElementById('kongress_referral_id').value.trim();
+                    if (kongressReferralId) {
+                        params.set('referrer', kongressReferralId);
+                    }
                 }
+
                 let kongressCampaign;
                 if (currentUserType === 'kongress') {
                     kongressCampaign = 'InvestmentKongress25_Speaker';
