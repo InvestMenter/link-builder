@@ -1106,7 +1106,7 @@
             return result.substring(0, 50);
         }
 
-        // Check if short link path already exists
+        // Check if short link path already exists in Short.io
         async function checkExistingShortLink(path) {
             const sanitizedPath = sanitizePath(path);
             
@@ -1116,11 +1116,10 @@
             }
 
             try {
-                // Use Short.io API to check if link exists
-                const SHORT_IO_API_URL = 'https://api.short.io/links/public';
-                const checkUrl = `https://${SHORT_IO_DOMAIN}/${sanitizedPath}`;
+                // Use Short.io API to get link by domain and path
+                const SHORT_IO_API_URL = 'https://api.short.io/links';
                 
-                const response = await fetch(SHORT_IO_API_URL, {
+                const response = await fetch(`${SHORT_IO_API_URL}?domain_id=${SHORT_IO_DOMAIN}&path=${encodeURIComponent(sanitizedPath)}`, {
                     method: 'GET',
                     headers: {
                         'authorization': SHORT_IO_API_KEY,
@@ -1128,90 +1127,88 @@
                     }
                 });
 
-                // If we get a 200 response, check if our domain/path exists in the response
                 if (response.ok) {
                     const data = await response.json();
-                    // This would need to be implemented based on Short.io's actual API response
-                    // For now, we'll assume the link doesn't exist and let the creation handle duplicates
+                    // If we found links, check if any match our exact path
+                    if (data && data.links && data.links.length > 0) {
+                        const existingLink = data.links.find(link => link.path === sanitizedPath);
+                        if (existingLink) {
+                            const shortUrl = `https://${SHORT_IO_DOMAIN}/${sanitizedPath}`;
+                            // Cache the existing short link
+                            existingShortLinks.set(sanitizedPath, shortUrl);
+                            return shortUrl;
+                        }
+                    }
                 }
                 
-                return null; // Assume doesn't exist, let create handle conflicts
+                return null; // Link doesn't exist
             } catch (error) {
-                // If there's an error checking, assume it doesn't exist
-                return null;
+                console.log('Error checking existing short link:', error);
+                return null; // Assume doesn't exist on error
             }
         }
 
         async function createShortLink(longUrl, title, path) {
             const SHORT_IO_API_URL = 'https://api.short.io/links/public';
-            const baseSanitizedPath = sanitizePath(path);
-            let lastError = null;
-            const MAX_ATTEMPTS = 10;
-
-            // Don't check for existing links - just try to create and handle conflicts
-            for (let i = 0; i < MAX_ATTEMPTS; i++) {
-                const currentPath = (i === 0) ? baseSanitizedPath : `${baseSanitizedPath}-${i}`;
-                
-                if (!currentPath) {
-                    lastError = new Error("Generated path is empty. Please select a lead magnet and source.");
-                    break; 
-                }
-
-                try {
-                    if (debugMode) {
-                        console.log(`Attempting to create short link with path: "${currentPath}"`);
-                    }
-
-                    const requestBody = {
-                        originalURL: longUrl,
-                        domain: SHORT_IO_DOMAIN,
-                        title: title,
-                        path: currentPath
-                    };
-
-                    const response = await fetch(SHORT_IO_API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'authorization': SHORT_IO_API_KEY,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(requestBody)
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (debugMode) console.log(`Success with path "${currentPath}":`, data);
-                        
-                        // Cache the new short link
-                        existingShortLinks.set(currentPath, data.shortURL);
-                        return data.shortURL;
-                    }
-
-                    const errorData = await response.json();
-                    lastError = errorData;
-                    
-                    if (response.status === 409 || (errorData.error && errorData.error.toLowerCase().includes('path already exists'))) {
-                        if (debugMode) console.log(`Path "${currentPath}" already exists. Trying next variation.`);
-                        continue; 
-                    } else {
-                        throw new Error(`API error ${response.status}: ${errorData.error || 'Unknown error'}`);
-                    }
-
-                } catch (error) {
-                    lastError = error;
-                    if (debugMode) console.log(`Exception during attempt ${i+1}:`, error);
-                    
-                    // If it's a network error, try next variation
-                    if (error.name === 'TypeError' || error.message.includes('fetch')) {
-                        continue;
-                    } else {
-                        break;
-                    }
-                }
+            const sanitizedPath = sanitizePath(path);
+            
+            if (!sanitizedPath) {
+                throw new Error("Generated path is empty. Please select a lead magnet and source.");
             }
 
-            console.error("All attempts to create a short link failed.", lastError);
-            throw lastError || new Error(`Could not create a short link for path '${baseSanitizedPath}' after ${MAX_ATTEMPTS} attempts.`);
+            if (debugMode) {
+                console.log(`Checking if short link already exists for path: "${sanitizedPath}"`);
+            }
+
+            // First check if the link already exists
+            const existingLink = await checkExistingShortLink(sanitizedPath);
+            if (existingLink) {
+                if (debugMode) {
+                    console.log(`Found existing short link: ${existingLink}`);
+                }
+                return existingLink;
+            }
+
+            // Link doesn't exist, create a new one
+            try {
+                if (debugMode) {
+                    console.log(`Creating new short link with path: "${sanitizedPath}"`);
+                }
+
+                const requestBody = {
+                    originalURL: longUrl,
+                    domain: SHORT_IO_DOMAIN,
+                    title: title,
+                    path: sanitizedPath
+                };
+
+                const response = await fetch(SHORT_IO_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'authorization': SHORT_IO_API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (debugMode) {
+                        console.log(`Successfully created short link:`, data);
+                    }
+                    
+                    // Cache the new short link
+                    existingShortLinks.set(sanitizedPath, data.shortURL);
+                    return data.shortURL;
+                }
+
+                const errorData = await response.json();
+                throw new Error(`API error ${response.status}: ${errorData.error || 'Unknown error'}`);
+
+            } catch (error) {
+                console.error("Failed to create short link:", error);
+                throw error;
+            }
         }
 
         function updateDebugInfo(info) {
@@ -1340,8 +1337,21 @@
             }
         }
 
-        // Generate 12-character alphanumeric referral ID
-        function generateReferralId() {
+        // Generate referral ID based on email address (replicates your Google Sheets function)
+        function generateReferralId(email) {
+            if (!email || email.trim() === '') return '';
+            
+            const raw = String(email).trim().toLowerCase();
+            
+            // Convert to base64 using browser's btoa function
+            const base64 = btoa(raw);
+            
+            // Remove all non-alphanumeric characters and take first 12 characters
+            return base64.replace(/[^A-Z0-9]/gi, '').substring(0, 12);
+        }
+
+        // Legacy function for backward compatibility (generates random ID if no email provided)
+        function generateRandomReferralId() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
             let result = '';
             for (let i = 0; i < 12; i++) {
@@ -1372,6 +1382,31 @@
                 console.error('Test error:', error);
                 return { error: error.message };
             }
+        };
+
+        // Test function for referral ID generation
+        window.testReferralGeneration = function(email) {
+            console.log('=== REFERRAL ID GENERATION TEST ===');
+            console.log('Input email:', email);
+            
+            if (!email) {
+                console.log('❌ No email provided');
+                return null;
+            }
+            
+            const generatedId = generateReferralId(email);
+            console.log('Generated referral ID:', generatedId);
+            console.log('Referral ID length:', generatedId.length);
+            
+            // Show step-by-step process
+            const raw = String(email).trim().toLowerCase();
+            const base64 = btoa(raw);
+            console.log('Step 1 - Cleaned email:', raw);
+            console.log('Step 2 - Base64 encoded:', base64);
+            console.log('Step 3 - Alphanumeric only:', base64.replace(/[^A-Z0-9]/gi, ''));
+            console.log('Step 4 - First 12 chars:', base64.replace(/[^A-Z0-9]/gi, '').substring(0, 12));
+            
+            return generatedId;
         };
 
         // IMPROVED EMAIL LOOKUP FUNCTION WITH RACE CONDITION PROTECTION
@@ -1468,8 +1503,8 @@
                     
                     statusDiv.innerHTML = '<span style="color: orange;">📝 Email not found in database - generating new referral ID...</span>';
                     
-                    const newReferralId = generateReferralId();
-                    console.log('Generated new referral ID:', newReferralId);
+                    const newReferralId = generateReferralId(email);
+                    console.log('Generated new referral ID for email:', email, '-> ID:', newReferralId);
                     
                     referralIdInput.value = newReferralId;
                     kongressReferralInput.value = newReferralId;
@@ -1478,7 +1513,7 @@
                     const saveResult = await saveNewEmailToDatabase(email, newReferralId);
                     
                     if (saveResult.success) {
-                        statusDiv.innerHTML = '<span class="success-message">✅ New referral ID generated and saved: ' + newReferralId + '</span>';
+                        statusDiv.innerHTML = '<span class="success-message">✅ New referral ID generated from email and saved: ' + newReferralId + '</span>';
                         console.log('✅ Successfully saved new email to database');
                         
                         // ADD TO PROCESSED SET ONLY AFTER SUCCESSFUL SAVE
