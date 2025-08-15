@@ -1736,49 +1736,198 @@
             }
             
             document.getElementById('utm_campaign').value = utmCampaign;
+       
             let currentURL = '';
-            const param1Name = 'utm_source', param1Value = utmSource;
-            const param2Name = 'utm_medium', param2Value = utmMedium;
-            const param3Name = 'utm_campaign', param3Value = utmCampaign;
-            const additionalPathE3 = agentName, additionalPathK3 = leadmagnet;
+            const param1Name = 'utm_source';
+            const param1Value = utmSource;
+            const param2Name = 'utm_medium';
+            const param2Value = utmMedium;
+            const param3Name = 'utm_campaign';
+            const param3Value = utmCampaign;
+            const additionalPathE3 = agentName;
+            const additionalPathK3 = leadmagnet;
+            const additionalPathL3 = dateString;
 
+            // --- RESTORED: Full, detailed URL generation logic ---
             if (additionalPathK3 === "Kongress" && domain === "investmenter.de") {
-                const baseUrl = `https://immo.${domain}/kongress/`;
+                const baseUrl = `https://immo.${domain}/${additionalPathK3}/`;
                 const params = new URLSearchParams();
-                const referrerValue = getReferrerId();
-                if (referrerValue) {
-                    params.set('referrer', referrerValue);
+
+                const kongressReferralId = document.getElementById('kongress_referral_id').value.trim();
+                if (kongressReferralId) {
+                    // The value is already Base64 encoded by updateKongressReferralField
+                    params.set('referrer', kongressReferralId);
                 }
+
+                let kongressCampaign;
+                if (currentUserType === 'kongress') {
+                    kongressCampaign = 'InvestmentKongress25_Speaker';
+                } else if (currentUserType === 'partner') {
+                    kongressCampaign = 'InvestmentKongress25_ReferralProgram';
+                } else {
+                    kongressCampaign = 'InvestmentKongress25';
+                }
+                
                 params.set(param1Name, param1Value);
                 params.set(param2Name, param2Value);
-                params.set(param3Name, param3Value);
-                if (utmContent) params.set('utm_content', utmContent);
+                params.set(param3Name, kongressCampaign);
                 params.set('one_s', param1Value);
                 params.set('one_m', param2Value);
-                params.set('one_c', param3Value);
-                if (currentUserType === 'internal') params.set('utm_agent', additionalPathE3);
-                currentURL = `${baseUrl}?${params.toString()}`;
-            } else {
-                 // Fallback for other links (simplified for brevity, original logic was very long)
-                let baseUrl = `https://${domain}/${additionalPathK3}/`;
-                if (domain.startsWith("corporate") || additionalPathK3 === 'webseite') {
-                    baseUrl = `https://${domain}/`;
+                params.set('one_c', kongressCampaign);
+
+                if (currentUserType === 'internal') {
+                    params.set('utm_agent', additionalPathE3);
                 }
-                let params = `?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}`;
-                currentURL = baseUrl + params + contentParamString;
+
+                currentURL = `${baseUrl}?${params.toString()}`;
+
+            } else if (domain === "corporate.investmenter.de") {
+                switch (utmMedium.toLowerCase()) {
+                    case 'referral':
+                        currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_${param1Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_${param1Value}&utm_agent=${additionalPathE3}`;
+                        break;
+                    case 'organic':
+                    case 'cooperation':
+                        currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathK3}_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathK3}_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        break;
+                    case 'paid':
+                        switch (utmSource.toLowerCase()) {
+                            case 'meta':
+                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}`;
+                                break;
+                            case 'google':
+                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}`;
+                                break;
+                            case 'taboola':
+                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=taboola&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
+                                break;
+                            case 'linkedin':
+                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=linkedin&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
+                                break;
+                            default:
+                                currentURL = `https://corporate.investmenter.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=MISSINGYETTHIS CANTBEDONEATMSYSTEMTOBEFOUND`;
+                                break;
+                        }
+                        break;
+                }
+            } else if (additionalPathK3.toLowerCase() === 'webseite') {
+                switch (utmMedium.toLowerCase()) {
+                    case 'referral':
+                        currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_${param1Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_${param1Value}&utm_agent=${additionalPathE3}`;
+                        break;
+                    case 'organic':
+                    case 'cooperation':
+                        currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathK3}_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathK3}_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        break;
+                    case 'paid':
+                        switch (utmSource.toLowerCase()) {
+                            case 'meta':
+                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}`;
+                                break;
+                            case 'google':
+                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}`;
+                                break;
+                            case 'taboola':
+                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=taboola&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
+                                break;
+                            case 'linkedin':
+                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=linkedin&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
+                                break;
+                            default:
+                                currentURL = `https://dubai-immobilie-kaufen.de?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=MISSINGYETTHIS CANTBEDONEATMSYSTEMTOBEFOUND`;
+                                break;
+                        }
+                        break;
+                }
+            } else if (utmMedium.toLowerCase() === 'paid') {
+                switch (utmSource.toLowerCase()) {
+                    case 'meta':
+                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=meta&one_m=cpc&one_c={{campaign.id}}&one_a={{ad.id}}&one_as={{adset.id}}&placement={{placement}}&site_source={{site_source_name}}&utm_agent=${additionalPathE3}`;
+                        break;
+                    case 'google':
+                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&{lpurl}?one_s=google&one_m={network}&one_c={campaignid}&one_as={adgroupid}&one_a={creative}&placement={placement}&one_t={keyword}&utm_agent=${additionalPathE3}`;
+                        break;
+                    case 'taboola':
+                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=taboola&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
+                        break;
+                    case 'linkedin':
+                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${param3Value}&one_s=linkedin&one_c={one_c}&one_a={campaign_item_id}&platform={platform}&one_t={site_id}&one_m={site}&tbclid={click_id}&utm_agent=${additionalPathE3}`;
+                        break;
+                    default:
+                        currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=MISSINGYETTHIS CANTBEDONEATMSYSTEMTOBEFOUND`;
+                        break;
+                }
+            } else {
+                switch (utmMedium.toLowerCase()) {
+                    case 'referral':
+                        if (additionalPathK3 === "dieterbohlen" && domain === "investmenter.com") {
+                            currentURL = `https://dieterbohlen.${domain}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_${param1Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_${param1Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "warteliste" && domain === "investmenter.com") {
+                            currentURL = `https://warteliste.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_${param1Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_${param1Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "flipreport" && domain === "investmenter.com") {
+                            currentURL = `https://report.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_${param1Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_${param1Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "flipreport-wechsler" && domain === "investmenter.com") {
+                            currentURL = `https://report.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_flipreport-wechsler_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_flipreport-wechsler_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "Vermögenstag" && domain === "investmenter.de") {
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_EricPromm_Vermögenstag_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_EricPromm_Vermögenstag_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "dubai-islands" && domain === "investmenter.de") {
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_dubai-islands_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_dubai-islands_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "vermogensschutz-liste" && domain === "investmenter.de") {
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "webinar" && domain === "investmenter.de") {
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_webinar_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_webinar_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        } else {
+                            currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_${param1Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_${param1Value}&utm_agent=${additionalPathE3}`;
+                        }
+                        break;
+                    case 'organic':
+                    case 'cooperation':
+                        if (additionalPathK3 === "dieterbohlen" && domain === "investmenter.com") {
+                            currentURL = `https://dieterbohlen.${domain}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathK3}_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathK3}_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "warteliste" && domain === "investmenter.com") {
+                            currentURL = `https://warteliste.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathK3}_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathK3}_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "flipreport" && domain === "investmenter.com") {
+                            currentURL = `https://report.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_${param3Value}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_${param3Value}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "flipreport-wechsler" && domain === "investmenter.com") {
+                            currentURL = `https://report.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_flipreport-wechsler_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_flipreport-wechsler_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "Vermögenstag" && domain === "investmenter.de") {
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_EricPromm_Vermögenstag_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_EricPromm_Vermögenstag_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "dubai-islands" && domain === "investmenter.de") {
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_dubai-islands_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_dubai-islands_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "vermogensschutz-liste" && domain === "investmenter.de") {
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "webinar" && domain === "investmenter.de") {
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathE3}_vermogensschutz-liste_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        } else {
+                            currentURL = `https://${domain}/${additionalPathK3}/?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=${additionalPathK3}_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=${additionalPathK3}_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        }
+                        break;
+                    default:
+                        console.log("UTM Medium not recognized. No URL created.");
+                        return null;
+                }
             }
 
             document.getElementById('original_link').value = currentURL;
-            document.getElementById('short_link').value = "(Click 'Generate & Save Link' to create)";
+            document.getElementById('short_link').value = "(Click 'Generate & Save Link' to create short link)";
             
-            let saveData = {
-                domain, leadmagnet, utmMedium, utmSource, utmCampaign, agentName,
+            let saveData = { 
+                domain, leadmagnet, utmMedium, utmSource, utmCampaign, agentName, 
                 generatedLink: currentURL, userType: currentUserType,
-                isReferralMode, isKongressMode, utmContent, shortLinkPathOverride
+                isReferralMode: isReferralMode, isKongressMode: isKongressMode
             };
+            
+            if (isReferralMode) {
+                saveData.referralId = document.getElementById('referral_id').value;
+                saveData.partnerName = document.getElementById('partner_name').value;
+            }
+            if (isKongressMode) {
+                saveData.speakerName = document.getElementById('speaker_name').value;
+            }
             
             return { link: currentURL, data: saveData };
         }
+
 
         async function generateAndSaveLink() {
             const statusDiv = document.getElementById('status');
