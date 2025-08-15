@@ -1488,7 +1488,7 @@
             if (type === 'internal') {
                 [agentSection, sourceAddContainer, leadmagnetAddContainer, referralToggleSection].forEach(el => el.classList.remove('hidden'));
             } else if (type === 'partner') {
-                [sourceAddContainer, leadmagnetAddContainer, referralToggleSection].forEach(el => el.classList.remove('hidden'));
+                [agentSection, sourceAddContainer, leadmagnetAddContainer, referralToggleSection].forEach(el => el.classList.remove('hidden'));
                 utmCampaign.disabled = true;
                 utmCampaign.classList.add('utm-field-locked');
                 campaignNotice.classList.remove('hidden');
@@ -1571,7 +1571,7 @@
                         utmCampaign.value = leadmagnet || '';
                     }
                 } else {
-                     utmMedium.value = '';
+                        utmMedium.value = '';
                 }
                 handleMediumChange(); 
             }
@@ -1713,14 +1713,13 @@
             const contentParamString = utmContent ? `&utm_content=${encodeURIComponent(utmContent)}` : '';
 
             if (isReferralMode && currentUserType === 'partner') {
-                const partnerName = document.getElementById('partner_name').value.trim();
-                agentName = partnerName || 'ReferralPartner';
+                agentName = document.getElementById('agent_name').value;
                 utmCampaign = (leadmagnet === 'Kongress') ? `InvestmentKongress2025ReferralProgram` : leadmagnet;
             } else if (isKongressMode) {
                 agentName = document.getElementById('speaker_name').value || 'KongressSpeaker';
                 utmCampaign = 'InvestmentKongress25_Speaker';
             } else if (currentUserType === 'partner') {
-                agentName = document.getElementById('partner_name').value.trim() || 'CooperationPartner';
+                agentName = document.getElementById('agent_name').value;
                 utmCampaign = (leadmagnet === 'Kongress') ? 'InvestmentKongress2025ReferralProgram' : leadmagnet;
             } else { // Internal User
                 agentName = document.getElementById('agent_name').value;
@@ -1736,7 +1735,7 @@
             }
             
             document.getElementById('utm_campaign').value = utmCampaign;
-       
+    
             let currentURL = '';
             const param1Name = 'utm_source';
             const param1Value = utmSource;
@@ -1775,7 +1774,7 @@
                 params.set('one_m', param2Value);
                 params.set('one_c', kongressCampaign);
 
-                if (currentUserType === 'internal') {
+                if (currentUserType === 'internal' || currentUserType === 'partner') {
                     params.set('utm_agent', additionalPathE3);
                 }
 
@@ -2040,4 +2039,3 @@
     </script>
 </body>
 </html>
-
