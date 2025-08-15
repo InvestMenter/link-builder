@@ -1686,26 +1686,34 @@
             let shortLinkPathOverride = null;
             const specialSources = Object.keys(predefinedReferralIds);
 
-            // NEW HIERARCHICAL LOGIC
+            // --- START: CORRECTED LOGIC BLOCK ---
+            // This block addresses both reported bugs by cleaning the source name before processing.
             if (leadmagnet === 'Kongress' && (currentUserType === 'internal' || currentUserType === 'partner')) {
-                const partnerName = document.getElementById('utm_source').value;
-                const isSpecialSource = specialSources.includes(partnerName);
+                const sourceFromInput = document.getElementById('utm_source').value;
+                
+                // **FIX**: Clean the source name by taking only the part before a potential '_referralID'.
+                // This prevents duplicate IDs and ensures special source checks work correctly.
+                const cleanSourceName = sourceFromInput.split('_')[0];
+                
+                const isSpecialSource = specialSources.includes(cleanSourceName);
 
                 if (isSpecialSource) {
-                    // Rule 3: Handle special predefined sources
-                    utmSource = partnerName; // utm_source is just the name
-                    shortLinkPathOverride = `${leadmagnet}/${partnerName}`;
+                    // Rule for special sources (e.g., AnnaHerbst)
+                    utmSource = cleanSourceName; // utm_source is just the name
+                    shortLinkPathOverride = `${leadmagnet}/${cleanSourceName}`;
                 } else {
-                    // Rules 1 & 2: Handle all other sources
+                    // Rule for other internal/partner sources
                     const referrerValue = getReferrerId();
-                    if (partnerName && referrerValue) {
-                        const namePart = partnerName.replace(/\s+/g, '');
-                        const hasTwoNames = partnerName.trim().includes(' ');
+                    if (cleanSourceName && referrerValue) {
+                        const namePart = cleanSourceName.replace(/\s+/g, '');
+                        const hasTwoNames = cleanSourceName.trim().includes(' ');
                         utmSource = `${namePart}_${referrerValue}`;
                         shortLinkPathOverride = hasTwoNames ? `${leadmagnet}/${namePart}` : `${leadmagnet}/${utmSource}`;
                     }
                 }
             }
+            // --- END: CORRECTED LOGIC BLOCK ---
+
 
             if (currentUserType === 'internal' && isReferralMode) {
                 utmContent = document.getElementById('referral_id').value.trim();
@@ -1913,7 +1921,8 @@
             let saveData = { 
                 domain, leadmagnet, utmMedium, utmSource, utmCampaign, agentName, 
                 generatedLink: currentURL, userType: currentUserType,
-                isReferralMode: isReferralMode, isKongressMode: isKongressMode
+                isReferralMode: isReferralMode, isKongressMode: isKongressMode,
+                shortLinkPathOverride: shortLinkPathOverride // Pass this for saving
             };
             
             if (isReferralMode) {
