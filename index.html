@@ -1762,15 +1762,15 @@
 
                 const finalReferrerId = getReferrerId();
 if (finalReferrerId) {
-    params.set('referrerID', finalReferrerId);
+    params.set('referrer', finalReferrerId);
 }
                 let kongressCampaign;
                 if (currentUserType === 'kongress') {
                     kongressCampaign = 'InvestmentKongress25_Speaker';
                 } else if (currentUserType === 'partner') {
-                    kongressCampaign = 'InvestmentKongress25_ReferralProgram';
+                    kongressCampaign = 'InvestmentKongress25ReferralProgram';
                 } else {
-                    kongressCampaign = 'InvestmentKongress25';
+                    kongressCampaign = 'InvestmentKongress25ReferralProgram';
                 }
                 
                 params.set(param1Name, param1Value);
@@ -2050,6 +2050,7 @@ if (finalReferrerId) {
     </script>
 </body>
 </html>
+
 
 
 
