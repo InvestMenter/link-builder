@@ -1760,12 +1760,10 @@
                 const baseUrl = `https://immo.${domain}/${additionalPathK3}/`;
                 const params = new URLSearchParams();
 
-                const kongressReferralId = document.getElementById('kongress_referral_id').value.trim();
-                if (kongressReferralId) {
-                    // The value is already Base64 encoded by updateKongressReferralField
-                    params.set('referrer', kongressReferralId);
-                }
-
+                const finalReferrerId = getReferrerId();
+if (finalReferrerId) {
+    params.set('referrerID', finalReferrerId);
+}
                 let kongressCampaign;
                 if (currentUserType === 'kongress') {
                     kongressCampaign = 'InvestmentKongress25_Speaker';
@@ -2052,5 +2050,6 @@
     </script>
 </body>
 </html>
+
 
 
