@@ -896,7 +896,7 @@
             <select id="leadmagnet" onchange="handleLeadMagnetChange()">
                 <option value="">-- Select Lead Magnet --</option>
                 <option value="Kongress">Kongress</option>
-                <option value="Vermögenstag">Vermögenstag</option><option value="report24">report24</option><option value="Erstgespraech">Erstgespraech</option><option value="videoseries">videoseries</option><option value="investmentguideAG">investmentguideAG</option><option value="webinar">webinar</option><option value="investment-report2024">investment-report2024</option><option value="webseite">webseite</option><option value="webinar-report240">webinar-report240</option><option value="haltefrist24-report">haltefrist24-report</option><option value="dieterbohlen">dieterbohlen</option><option value="warteliste">warteliste</option><option value="flipreport">flipreport</option><option value="flipreport-wechsler">flipreport-wechsler</option><option value="erfolgswebinar">erfolgswebinar</option><option value="webinar-fehr">webinar-fehr</option><option value="Erstgespraech_20241104">Erstgespraech_20241104</option><option value="villen-launch">villen-launch</option><option value="webinar-wolf">webinar-wolf</option><option value="geistige-heizungsgesetz">geistige-heizungsgesetz</option><option value="vermoegensschutz-checkliste">vermoegensschutz-checkliste</option><option value="corporate-service">corporate-service</option><option value="zukunftsreport-2024">zukunftsreport-2024</option><option value="dubai-islands">dubai-islands</option><option value="vermogensschutz-liste">vermogensschutz-liste</option>
+                <option value="Vermögenstag">Vermögenstag</option><option value="report24">report24</option><option value="Erstgespraech">Erstgespraech</option><option value="videoseries">videoseries</option><option value="investmentguideAG">investmentguideAG</option><option value="webinar">webinar</option><option value="investment-report2024">investment-report2024</option><option value="webinar-jh">webinar-jh</option><option value="webseite">webseite</option><option value="webinar-report240">webinar-report240</option><option value="haltefrist24-report">haltefrist24-report</option><option value="dieterbohlen">dieterbohlen</option><option value="warteliste">warteliste</option><option value="flipreport">flipreport</option><option value="flipreport-wechsler">flipreport-wechsler</option><option value="erfolgswebinar">erfolgswebinar</option><option value="webinar-fehr">webinar-fehr</option><option value="Erstgespraech_20241104">Erstgespraech_20241104</option><option value="villen-launch">villen-launch</option><option value="webinar-wolf">webinar-wolf</option><option value="geistige-heizungsgesetz">geistige-heizungsgesetz</option><option value="vermoegensschutz-checkliste">vermoegensschutz-checkliste</option><option value="corporate-service">corporate-service</option><option value="zukunftsreport-2024">zukunftsreport-2024</option><option value="dubai-islands">dubai-islands</option><option value="vermogensschutz-liste">vermogensschutz-liste</option>
             </select>
             <div class="add-option-container" id="leadmagnet-add-container">
                 <input type="text" class="add-option-input" id="new-leadmagnet" placeholder="Enter new lead magnet">
@@ -1964,6 +1964,8 @@ if (finalReferrerId) {
                             currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=vermogensschutz-liste_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=vermogensschutz-liste_${additionalPathL3}&utm_agent=${additionalPathE3}`;
                         } else if (additionalPathK3 === "webinar" && domain === "investmenter.de") {
                             currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=webinar_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=webinar_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        } else if (additionalPathK3 === "webinar-jh" && domain === "investmenter.de") {
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=webinar_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=webinar_${additionalPathL3}&utm_agent=${additionalPathE3}`;
                         } else if (additionalPathK3 === "zukunftsreport-2024" && domain === "investmenter.de") {
                             currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=webinar_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=webinar_${additionalPathL3}&utm_agent=${additionalPathE3}`;
                         } else if (additionalPathK3 === "dieterbohlen" && domain === "investmenter.de") {
@@ -1990,6 +1992,8 @@ if (finalReferrerId) {
                             currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=ermogensschutz-liste_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=vermogensschutz-liste_${additionalPathL3}&utm_agent=${additionalPathE3}`;
                         } else if (additionalPathK3 === "webinar" && domain === "investmenter.de") {
                             currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=webinar_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=webinar_${additionalPathL3}&utm_agent=${additionalPathE3}`;
+                        else if (additionalPathK3 === "webinar-jh" && domain === "investmenter.de") {
+                            currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=webinar_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=webinar_${additionalPathL3}&utm_agent=${additionalPathE3}`;  
                          } else if (additionalPathK3 === "zukunftsreport-2024" && domain === "investmenter.de") {
                             currentURL = `https://immo.${domain}/${additionalPathK3}?${param1Name}=${param1Value}&${param2Name}=${param2Value}&${param3Name}=webinar_${additionalPathL3}&one_s=${param1Value}&one_m=${param2Value}&one_c=webinar_${additionalPathL3}&utm_agent=${additionalPathE3}`;
                         } else if (additionalPathK3 === "dieterbohlen" && domain === "investmenter.de") {
@@ -2170,6 +2174,7 @@ async function generateAndSaveLink() {
     </script>
 </body>
 </html>
+
 
 
 
